@@ -102,7 +102,16 @@ exports.login = async (req, res) => {
         }
 
         const user = result.recordset[0];
-        const isMatch = await bcrypt.compare(password, user.MatKhau);
+
+        // Hỗ trợ cả plain text lẫn bcrypt hash
+        let isMatch = false;
+        if (user.MatKhau.startsWith('$2')) {
+            // Mật khẩu đã được hash bcrypt
+            isMatch = await bcrypt.compare(password, user.MatKhau);
+        } else {
+            // Mật khẩu plain text (dữ liệu mẫu)
+            isMatch = (password === user.MatKhau);
+        }
 
         if (!isMatch) {
             return res.status(401).json({ message: 'Email hoặc mật khẩu không đúng' });
