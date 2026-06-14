@@ -18,22 +18,14 @@ const Login = () => {
 
         const result = await login(email, password);
         if (result.success) {
-            // Get user role from local storage or wait for next state update.
-            // For immediate redirection, we decode or rely on login resolving the role.
-            // Let's retrieve user profile to route correctly.
-            try {
-                const { authService } = await import('../../services/api');
-                const profileRes = await authService.getProfile();
-                const role = profileRes.data.Role;
-                if (role === 'admin') {
-                    navigate('/admin');
-                } else if (role === 'doctor') {
-                    navigate('/doctor');
-                } else {
-                    navigate('/patient');
-                }
-            } catch (err) {
-                navigate('/patient'); // Default backup
+            // Role được trả về trực tiếp từ login response (lowercase: admin/doctor/patient)
+            const role = result.role;
+            if (role === 'admin') {
+                navigate('/admin');
+            } else if (role === 'doctor') {
+                navigate('/doctor');
+            } else {
+                navigate('/patient');
             }
         } else {
             setError(result.error);
@@ -121,10 +113,10 @@ const Login = () => {
                 </p>
                 
                 <div style={{ marginTop: '1.5rem', paddingTop: '1rem', borderTop: '1px solid var(--border-color)', textAlign: 'center', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-                    <p>Tài khoản dùng thử (mật khẩu mặc định: 123456)</p>
-                    <p>Bệnh nhân: patient.an@gmail.com</p>
-                    <p>Bác sĩ: doctor.tmh@clinic.com</p>
-                    <p>Quản trị: admin@clinic.com</p>
+                    <p>Tài khoản dùng thử (mật khẩu: <strong>123456</strong>)</p>
+                    <p>🧑‍⚕️ Bệnh nhân: patient.an@gmail.com</p>
+                    <p>👨‍⚕️ Bác sĩ: doctor.tmh@clinic.com</p>
+                    <p>🔧 Quản trị: admin@clinic.com</p>
                 </div>
             </div>
         </div>

@@ -29,15 +29,21 @@ export const AuthProvider = ({ children }) => {
         try {
             const res = await authService.login(email, password);
             const { token: receivedToken, user: userData } = res.data;
+            // Normalize: đảm bảo luôn có cả role (lowercase) và Role (uppercase)
+            const normalizedUser = {
+                ...userData,
+                Role: userData.Role || userData.role,
+                FullName: userData.FullName || userData.fullName,
+            };
             localStorage.setItem('token', receivedToken);
             setToken(receivedToken);
-            setUser(userData);
-            return { success: true };
+            setUser(normalizedUser);
+            return { success: true, role: normalizedUser.Role };
         } catch (err) {
             console.error('Login error:', err);
             return {
                 success: false,
-                error: err.response?.data?.message || 'Login failed. Please check your credentials.'
+                error: err.response?.data?.message || 'Đăng nhập thất bại. Vui lòng kiểm tra lại email và mật khẩu.'
             };
         } finally {
             setLoading(false);

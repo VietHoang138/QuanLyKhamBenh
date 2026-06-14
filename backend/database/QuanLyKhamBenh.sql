@@ -5,19 +5,19 @@
 USE master;
 GO
 
-IF DB_ID('HealthcareAI') IS NOT NULL
+IF DB_ID('QuanLyKhamBenh') IS NOT NULL
 BEGIN
-    ALTER DATABASE HealthcareAI
+    ALTER DATABASE QuanLyKhamBenh
     SET SINGLE_USER WITH ROLLBACK IMMEDIATE;
 
-    DROP DATABASE HealthcareAI;
+    DROP DATABASE QuanLyKhamBenh;
 END
 GO
 
-CREATE DATABASE HealthcareAI;
+CREATE DATABASE QuanLyKhamBenh;
 GO
 
-USE HealthcareAI;
+USE QuanLyKhamBenh;
 GO
 
 
@@ -471,6 +471,9 @@ GO
 02. DỮ LIỆU BẢNG NGƯỜI DÙNG
 =========================================================*/
 
+-- Mật khẩu mặc định cho tất cả tài khoản: 123456
+-- Hash bcrypt (cost 10): $2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi
+
 INSERT INTO NguoiDung
 (
     MaNguoiDung,
@@ -487,8 +490,8 @@ VALUES
 (
 'ND001',
 N'Nguyễn Văn Admin',
-'admin@gmail.com',
-'123456',
+'admin@clinic.com',
+'$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi',
 '0901111111',
 N'Nam',
 '1990-01-01',
@@ -497,31 +500,31 @@ N'Đà Nẵng',
 ),
 (
 'ND002',
-N'Trần Thị Bình',
-'doctor1@gmail.com',
-'123456',
+N'Trần Minh Hải',
+'doctor.tmh@clinic.com',
+'$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi',
 '0902222222',
-N'Nữ',
+N'Nam',
 '1985-02-15',
 N'Hà Nội',
 'VT002'
 ),
 (
 'ND003',
-N'Lê Văn Cường',
-'doctor2@gmail.com',
-'123456',
+N'Nguyễn Lê Bích',
+'doctor.nlb@clinic.com',
+'$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi',
 '0903333333',
-N'Nam',
+N'Nữ',
 '1982-07-10',
 N'TP Hồ Chí Minh',
 'VT002'
 ),
 (
 'ND004',
-N'Phạm Quốc Dũng',
-'doctor3@gmail.com',
-'123456',
+N'Phạm Văn Đức',
+'doctor.pvd@clinic.com',
+'$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi',
 '0904444444',
 N'Nam',
 '1987-03-05',
@@ -530,9 +533,9 @@ N'Huế',
 ),
 (
 'ND005',
-N'Nguyễn Thị Lan',
-'doctor4@gmail.com',
-'123456',
+N'Hoàng Thị Lan',
+'doctor.htl@clinic.com',
+'$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi',
 '0905555555',
 N'Nữ',
 '1984-05-22',
@@ -541,9 +544,9 @@ N'Đà Nẵng',
 ),
 (
 'ND006',
-N'Hoàng Minh Khang',
-'doctor5@gmail.com',
-'123456',
+N'Vũ Minh Khoa',
+'doctor.vmk@clinic.com',
+'$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi',
 '0906666666',
 N'Nam',
 '1980-11-11',
@@ -552,9 +555,9 @@ N'Quảng Nam',
 ),
 (
 'ND007',
-N'Võ Thị Mai',
-'patient1@gmail.com',
-'123456',
+N'Võ Thị An',
+'patient.an@gmail.com',
+'$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi',
 '0907777771',
 N'Nữ',
 '2000-01-01',
@@ -564,8 +567,8 @@ N'Đà Nẵng',
 (
 'ND008',
 N'Trần Quốc Bảo',
-'patient2@gmail.com',
-'123456',
+'patient.bao@gmail.com',
+'$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi',
 '0907777772',
 N'Nam',
 '1999-02-02',
@@ -575,8 +578,8 @@ N'Hội An',
 (
 'ND009',
 N'Lý Thu Hà',
-'patient3@gmail.com',
-'123456',
+'patient.ha@gmail.com',
+'$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi',
 '0907777773',
 N'Nữ',
 '1998-03-03',
@@ -586,8 +589,8 @@ N'Huế',
 (
 'ND010',
 N'Nguyễn Hoàng Nam',
-'patient4@gmail.com',
-'123456',
+'patient.nam@gmail.com',
+'$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi',
 '0907777774',
 N'Nam',
 '1997-04-04',
@@ -597,8 +600,8 @@ N'Quảng Trị',
 (
 'ND011',
 N'Phan Thị Hương',
-'patient5@gmail.com',
-'123456',
+'patient.huong@gmail.com',
+'$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi',
 '0907777775',
 N'Nữ',
 '1996-05-05',

@@ -121,7 +121,7 @@ const BookAppointment = () => {
         setSubmitting(true);
         try {
             await appointmentService.book({
-                doctorId: Number(selectedDoctor),
+                doctorId: selectedDoctor,
                 appointmentDate,
                 appointmentTime: selectedSlot,
                 reason
