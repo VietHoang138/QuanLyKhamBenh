@@ -1,178 +1,294 @@
 const { sql, poolPromise } = require('../config/db');
 
+// Map trạng thái tiếng Việt ↔ tiếng Anh
+const STATUS_VI_TO_EN = {
+    'Chờ xác nhận': 'pending',
+    'Đã xác nhận':  'approved',
+    'Hoàn thành':   'completed',
+    'Đã hủy':       'cancelled',
+};
+const STATUS_EN_TO_VI = {
+    'pending':   'Chờ xác nhận',
+    'approved':  'Đã xác nhận',
+    'completed': 'Hoàn thành',
+    'cancelled': 'Đã hủy',
+};
+
+// Helper: lấy MaBacSi từ MaNguoiDung
+async function getMaBacSi(pool, maNguoiDung) {
+    const result = await pool.request()
+        .input('maNguoiDung', sql.VarChar, maNguoiDung)
+        .query('SELECT MaBacSi FROM BacSi WHERE MaNguoiDung = @maNguoiDung');
+    return result.recordset.length > 0 ? result.recordset[0].MaBacSi : null;
+}
+
+// Lấy danh sách lịch hẹn của bác sĩ đang đăng nhập
 exports.getDoctorAppointments = async (req, res) => {
-    const doctorId = req.user.id;
+    const doctorUserId = req.user.id;
 
     try {
         const pool = await poolPromise;
+        const maBacSi = await getMaBacSi(pool, doctorUserId);
+        if (!maBacSi) {
+            return res.status(400).json({ message: 'Không tìm thấy hồ sơ bác sĩ' });
+        }
+
         const result = await pool.request()
-            .input('doctorId', sql.Int, doctorId)
+            .input('maBacSi', sql.VarChar, maBacSi)
             .query(`
-                SELECT a.Id, a.AppointmentDate, a.AppointmentTime, a.Status, a.Reason, a.CreatedAt,
-                       p.Id AS PatientId, p.FullName AS PatientName, p.Email AS PatientEmail, 
-                       p.Phone AS PatientPhone, p.Gender AS PatientGender, p.DateOfBirth AS PatientDOB
-                FROM Appointments a
-                INNER JOIN Users p ON a.PatientId = p.Id
-                WHERE a.DoctorId = @doctorId
-                ORDER BY a.AppointmentDate DESC, a.AppointmentTime DESC
+                SELECT
+                    lh.MaLichHen                            AS Id,
+                    CAST(lh.NgayHen AS DATE)                AS AppointmentDate,
+                    CONVERT(VARCHAR(5), lh.NgayHen, 108)    AS AppointmentTime,
+                    lh.TrangThai                            AS StatusVi,
+                    lh.LyDoKham                             AS Reason,
+                    lh.NgayTao                              AS CreatedAt,
+                    nd.MaNguoiDung                          AS PatientId,
+                    nd.HoTen                                AS PatientName,
+                    nd.Email                                AS PatientEmail,
+                    nd.SoDienThoai                          AS PatientPhone,
+                    nd.GioiTinh                             AS PatientGender,
+                    nd.NgaySinh                             AS PatientDOB
+                FROM LichHen lh
+                INNER JOIN BenhNhan bn ON lh.MaBenhNhan = bn.MaBenhNhan
+                INNER JOIN NguoiDung nd ON bn.MaNguoiDung = nd.MaNguoiDung
+                WHERE lh.MaBacSi = @maBacSi
+                ORDER BY lh.NgayHen DESC
             `);
 
-        res.json(result.recordset);
+        const mapped = result.recordset.map(row => ({
+            ...row,
+            Status: STATUS_VI_TO_EN[row.StatusVi] || row.StatusVi,
+            StatusVi: undefined
+        }));
+
+        res.json(mapped);
     } catch (err) {
         console.error('Error getting doctor appointments:', err);
-        res.status(500).json({ message: 'Server error retrieving doctor appointments' });
+        res.status(500).json({ message: 'Lỗi server khi lấy danh sách lịch hẹn' });
     }
 };
 
+// Cập nhật trạng thái lịch hẹn
 exports.updateAppointmentStatus = async (req, res) => {
-    const doctorId = req.user.id;
+    const doctorUserId = req.user.id;
     const { appointmentId, status } = req.body;
 
     if (!appointmentId || !status) {
-        return res.status(400).json({ message: 'Appointment ID and status are required' });
+        return res.status(400).json({ message: 'Mã lịch hẹn và trạng thái là bắt buộc' });
     }
 
     const validStatuses = ['approved', 'cancelled', 'completed'];
     if (!validStatuses.includes(status)) {
-        return res.status(400).json({ message: 'Invalid status value' });
+        return res.status(400).json({ message: 'Trạng thái không hợp lệ' });
     }
+
+    // Map tiếng Anh → tiếng Việt
+    const statusViMap = {
+        'approved':  'Đã xác nhận',
+        'completed': 'Hoàn thành',
+        'cancelled': 'Đã hủy',
+    };
 
     try {
         const pool = await poolPromise;
-        
+        const maBacSi = await getMaBacSi(pool, doctorUserId);
+        if (!maBacSi) {
+            return res.status(400).json({ message: 'Không tìm thấy hồ sơ bác sĩ' });
+        }
+
         const result = await pool.request()
-            .input('status', sql.VarChar, status)
-            .input('appId', sql.Int, appointmentId)
-            .input('doctorId', sql.Int, doctorId)
+            .input('trangThai', sql.NVarChar, statusViMap[status])
+            .input('maLichHen', sql.VarChar, appointmentId)
+            .input('maBacSi', sql.VarChar, maBacSi)
             .query(`
-                UPDATE Appointments 
-                SET Status = @status 
-                WHERE Id = @appId AND DoctorId = @doctorId
+                UPDATE LichHen
+                SET TrangThai = @trangThai
+                WHERE MaLichHen = @maLichHen AND MaBacSi = @maBacSi
             `);
 
         if (result.rowsAffected[0] === 0) {
-            return res.status(404).json({ message: 'Appointment not found or not assigned to this doctor' });
+            return res.status(404).json({ message: 'Không tìm thấy lịch hẹn hoặc không có quyền thay đổi' });
         }
 
-        res.json({ message: `Appointment status updated to ${status}` });
+        res.json({ message: 'Cập nhật trạng thái lịch hẹn thành công' });
     } catch (err) {
         console.error('Error updating appointment status:', err);
-        res.status(500).json({ message: 'Server error updating status' });
+        res.status(500).json({ message: 'Lỗi server khi cập nhật trạng thái' });
     }
 };
 
+// Lấy danh sách bệnh nhân của bác sĩ
 exports.getDoctorPatients = async (req, res) => {
-    const doctorId = req.user.id;
+    const doctorUserId = req.user.id;
 
     try {
         const pool = await poolPromise;
+        const maBacSi = await getMaBacSi(pool, doctorUserId);
+        if (!maBacSi) {
+            return res.status(400).json({ message: 'Không tìm thấy hồ sơ bác sĩ' });
+        }
+
         const result = await pool.request()
-            .input('doctorId', sql.Int, doctorId)
+            .input('maBacSi', sql.VarChar, maBacSi)
             .query(`
-                SELECT DISTINCT p.Id, p.FullName, p.Email, p.Phone, p.Gender, p.DateOfBirth, p.Address
-                FROM Users p
-                INNER JOIN Appointments a ON a.PatientId = p.Id
-                WHERE a.DoctorId = @doctorId
+                SELECT DISTINCT
+                    nd.MaNguoiDung  AS Id,
+                    nd.HoTen        AS FullName,
+                    nd.Email        AS Email,
+                    nd.SoDienThoai  AS Phone,
+                    nd.GioiTinh     AS Gender,
+                    nd.NgaySinh     AS DateOfBirth,
+                    nd.DiaChi       AS Address
+                FROM NguoiDung nd
+                INNER JOIN BenhNhan bn ON bn.MaNguoiDung = nd.MaNguoiDung
+                INNER JOIN LichHen lh ON lh.MaBenhNhan = bn.MaBenhNhan
+                WHERE lh.MaBacSi = @maBacSi
             `);
 
         res.json(result.recordset);
     } catch (err) {
         console.error('Error getting doctor patients:', err);
-        res.status(500).json({ message: 'Server error retrieving patients list' });
+        res.status(500).json({ message: 'Lỗi server khi lấy danh sách bệnh nhân' });
     }
 };
 
+// Tạo bệnh án
 exports.createMedicalRecord = async (req, res) => {
-    const doctorId = req.user.id;
+    const doctorUserId = req.user.id;
     const { appointmentId, patientId, symptoms, diagnosis, prescription, doctorNotes, aiSummary } = req.body;
 
     if (!appointmentId || !patientId || !diagnosis) {
-        return res.status(400).json({ message: 'Appointment ID, Patient ID, and Diagnosis are required' });
+        return res.status(400).json({ message: 'Mã lịch hẹn, mã bệnh nhân và chẩn đoán là bắt buộc' });
     }
 
     try {
         const pool = await poolPromise;
 
-        // Check if record already exists
+        const maBacSi = await getMaBacSi(pool, doctorUserId);
+        if (!maBacSi) {
+            return res.status(400).json({ message: 'Không tìm thấy hồ sơ bác sĩ' });
+        }
+
+        // Lấy MaBenhNhan từ MaNguoiDung của bệnh nhân
+        const bnResult = await pool.request()
+            .input('maNguoiDung', sql.VarChar, patientId)
+            .query('SELECT MaBenhNhan FROM BenhNhan WHERE MaNguoiDung = @maNguoiDung');
+
+        if (bnResult.recordset.length === 0) {
+            return res.status(400).json({ message: 'Không tìm thấy hồ sơ bệnh nhân' });
+        }
+        const maBenhNhan = bnResult.recordset[0].MaBenhNhan;
+
+        // Kiểm tra bệnh án đã tồn tại chưa
         const checkRecord = await pool.request()
-            .input('appId', sql.Int, appointmentId)
-            .query('SELECT Id FROM MedicalRecords WHERE AppointmentId = @appId');
+            .input('maLichHen', sql.VarChar, appointmentId)
+            .query('SELECT MaBenhAn FROM BenhAn WHERE MaLichHen = @maLichHen');
 
         if (checkRecord.recordset.length > 0) {
-            return res.status(400).json({ message: 'Medical record already exists for this appointment' });
+            return res.status(400).json({ message: 'Bệnh án cho lịch hẹn này đã tồn tại' });
         }
 
-        // Insert medical record & Update appointment status to completed inside a transaction/sequential execution
-        const transaction = new sql.Transaction(pool);
-        await transaction.begin();
+        // Tạo MaBenhAn mới
+        const maxBaResult = await pool.request().query(`
+            SELECT MAX(CAST(SUBSTRING(MaBenhAn, 3, LEN(MaBenhAn)) AS INT)) AS MaxId
+            FROM BenhAn
+        `);
+        const nextBaId = (maxBaResult.recordset[0].MaxId || 0) + 1;
+        const newMaBenhAn = 'BA' + String(nextBaId).padStart(3, '0');
 
-        try {
-            const request = new sql.Request(transaction);
-            await request
-                .input('appId', sql.Int, appointmentId)
-                .input('patientId', sql.Int, patientId)
-                .input('doctorId', sql.Int, doctorId)
-                .input('symptoms', sql.NVarChar, symptoms || null)
-                .input('diagnosis', sql.NVarChar, diagnosis)
-                .input('prescription', sql.NVarChar, prescription || null)
-                .input('doctorNotes', sql.NVarChar, doctorNotes || null)
-                .input('aiSummary', sql.NVarChar, aiSummary || null)
-                .query(`
-                    INSERT INTO MedicalRecords (AppointmentId, PatientId, DoctorId, Symptoms, Diagnosis, Prescription, DoctorNotes, AISummary)
-                    VALUES (@appId, @patientId, @doctorId, @symptoms, @diagnosis, @prescription, @doctorNotes, @aiSummary)
-                `);
+        // Insert bệnh án
+        await pool.request()
+            .input('maBenhAn', sql.VarChar, newMaBenhAn)
+            .input('maLichHen', sql.VarChar, appointmentId)
+            .input('maBenhNhan', sql.VarChar, maBenhNhan)
+            .input('maBacSi', sql.VarChar, maBacSi)
+            .input('trieuChung', sql.NVarChar, symptoms || null)
+            .input('chanDoan', sql.NVarChar, diagnosis)
+            .input('phuongAn', sql.NVarChar, prescription || null)
+            .input('ghiChu', sql.NVarChar,
+                [doctorNotes, aiSummary ? `[AI] ${aiSummary}` : null].filter(Boolean).join('\n\n') || null
+            )
+            .query(`
+                INSERT INTO BenhAn
+                    (MaBenhAn, MaLichHen, MaBenhNhan, MaBacSi, TrieuChung, ChanDoan, PhuongAnDieuTri, GhiChu)
+                VALUES
+                    (@maBenhAn, @maLichHen, @maBenhNhan, @maBacSi, @trieuChung, @chanDoan, @phuongAn, @ghiChu)
+            `);
 
-            const updateRequest = new sql.Request(transaction);
-            await updateRequest
-                .input('appId', sql.Int, appointmentId)
-                .input('doctorId', sql.Int, doctorId)
-                .query(`
-                    UPDATE Appointments 
-                    SET Status = 'completed' 
-                    WHERE Id = @appId AND DoctorId = @doctorId
-                `);
+        // Cập nhật trạng thái lịch hẹn → Hoàn thành
+        await pool.request()
+            .input('maLichHen', sql.VarChar, appointmentId)
+            .query(`UPDATE LichHen SET TrangThai = N'Hoàn thành' WHERE MaLichHen = @maLichHen`);
 
-            await transaction.commit();
-            res.status(201).json({ message: 'Medical record created and appointment completed' });
-        } catch (txErr) {
-            await transaction.rollback();
-            throw txErr;
-        }
-
+        res.status(201).json({ message: 'Lưu bệnh án và hoàn thành ca khám thành công' });
     } catch (err) {
         console.error('Error creating medical record:', err);
-        res.status(500).json({ message: 'Server error creating medical record' });
+        res.status(500).json({ message: 'Lỗi server khi tạo bệnh án' });
     }
 };
 
+// Lấy lịch sử bệnh án của bệnh nhân
 exports.getPatientMedicalHistory = async (req, res) => {
-    // Both doctors and patients can access this, but we filter based on role/auth
-    const { patientId } = req.params;
+    const { patientId } = req.params; // patientId = MaNguoiDung
     const currentUserId = req.user.id;
     const currentUserRole = req.user.role;
 
-    // A patient can only view their own history. A doctor can view any patient's history.
-    if (currentUserRole === 'patient' && Number(patientId) !== currentUserId) {
-        return res.status(403).json({ message: 'You are not authorized to view this medical history' });
+    // Bệnh nhân chỉ xem được bệnh án của chính mình
+    if (currentUserRole === 'patient' && patientId !== currentUserId) {
+        return res.status(403).json({ message: 'Bạn không có quyền xem bệnh án của người khác' });
     }
 
     try {
         const pool = await poolPromise;
+
+        // Lấy MaBenhNhan từ MaNguoiDung
+        const bnResult = await pool.request()
+            .input('maNguoiDung', sql.VarChar, patientId)
+            .query('SELECT MaBenhNhan FROM BenhNhan WHERE MaNguoiDung = @maNguoiDung');
+
+        if (bnResult.recordset.length === 0) {
+            return res.json([]);
+        }
+        const maBenhNhan = bnResult.recordset[0].MaBenhNhan;
+
         const result = await pool.request()
-            .input('patientId', sql.Int, patientId)
+            .input('maBenhNhan', sql.VarChar, maBenhNhan)
             .query(`
-                SELECT mr.Id, mr.AppointmentId, mr.Symptoms, mr.Diagnosis, mr.Prescription, mr.DoctorNotes, mr.AISummary, mr.CreatedAt,
-                       d.FullName AS DoctorName, s.Name AS SpecializationName
-                FROM MedicalRecords mr
-                INNER JOIN Users d ON mr.DoctorId = d.Id
-                LEFT JOIN Specializations s ON d.SpecializationId = s.Id
-                WHERE mr.PatientId = @patientId
-                ORDER BY mr.CreatedAt DESC
+                SELECT
+                    ba.MaBenhAn         AS Id,
+                    ba.MaLichHen        AS AppointmentId,
+                    ba.TrieuChung       AS Symptoms,
+                    ba.ChanDoan         AS Diagnosis,
+                    ba.PhuongAnDieuTri  AS Prescription,
+                    ba.GhiChu           AS DoctorNotes,
+                    ba.NgayTao          AS CreatedAt,
+                    nd.HoTen            AS DoctorName,
+                    ck.TenChuyenKhoa    AS SpecializationName
+                FROM BenhAn ba
+                INNER JOIN BacSi bs ON ba.MaBacSi = bs.MaBacSi
+                INNER JOIN NguoiDung nd ON bs.MaNguoiDung = nd.MaNguoiDung
+                INNER JOIN ChuyenKhoa ck ON bs.MaChuyenKhoa = ck.MaChuyenKhoa
+                WHERE ba.MaBenhNhan = @maBenhNhan
+                ORDER BY ba.NgayTao DESC
             `);
 
-        res.json(result.recordset);
+        // Tách AISummary ra khỏi GhiChu nếu có tiền tố [AI]
+        const mapped = result.recordset.map(row => {
+            let doctorNotes = row.DoctorNotes || '';
+            let aiSummary = '';
+            const aiPrefix = '[AI] ';
+            const aiIndex = doctorNotes.indexOf(aiPrefix);
+            if (aiIndex !== -1) {
+                aiSummary = doctorNotes.substring(aiIndex + aiPrefix.length).split('\n\n')[0];
+                doctorNotes = doctorNotes.replace(`\n\n${aiPrefix}${aiSummary}`, '').replace(`${aiPrefix}${aiSummary}`, '').trim();
+            }
+            return { ...row, DoctorNotes: doctorNotes || null, AISummary: aiSummary || null };
+        });
+
+        res.json(mapped);
     } catch (err) {
         console.error('Error getting patient medical history:', err);
-        res.status(500).json({ message: 'Server error retrieving medical history' });
+        res.status(500).json({ message: 'Lỗi server khi lấy lịch sử bệnh án' });
     }
 };

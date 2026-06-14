@@ -93,7 +93,7 @@ const DoctorManagement = () => {
                     address: formData.address,
                     dateOfBirth: formData.dateOfBirth,
                     gender: formData.gender,
-                    specializationId: Number(formData.specializationId)
+                    specializationId: formData.specializationId
                 });
                 setSuccess('Cập nhật thông tin bác sĩ thành công!');
                 setShowAddForm(false);
@@ -106,7 +106,7 @@ const DoctorManagement = () => {
             try {
                 await adminService.addDoctor({
                     ...formData,
-                    specializationId: Number(formData.specializationId)
+                    specializationId: formData.specializationId
                 });
                 setSuccess('Tạo tài khoản bác sĩ mới thành công!');
                 setShowAddForm(false);

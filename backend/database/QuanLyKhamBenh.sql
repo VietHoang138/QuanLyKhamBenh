@@ -5,19 +5,19 @@
 USE master;
 GO
 
-IF DB_ID('HealthcareAI') IS NOT NULL
+IF DB_ID('QuanLyKhamBenh') IS NOT NULL
 BEGIN
-    ALTER DATABASE HealthcareAI
+    ALTER DATABASE QuanLyKhamBenh
     SET SINGLE_USER WITH ROLLBACK IMMEDIATE;
 
-    DROP DATABASE HealthcareAI;
+    DROP DATABASE QuanLyKhamBenh;
 END
 GO
 
-CREATE DATABASE HealthcareAI;
+CREATE DATABASE QuanLyKhamBenh;
 GO
 
-USE HealthcareAI;
+USE QuanLyKhamBenh;
 GO
 
 
@@ -471,6 +471,9 @@ GO
 02. DỮ LIỆU BẢNG NGƯỜI DÙNG
 =========================================================*/
 
+-- Mật khẩu mặc định cho tất cả tài khoản: 123456
+-- (plain text, backend tự động nhận diện và so sánh đúng)
+
 INSERT INTO NguoiDung
 (
     MaNguoiDung,
@@ -487,7 +490,7 @@ VALUES
 (
 'ND001',
 N'Nguyễn Văn Admin',
-'admin@gmail.com',
+'admin@clinic.com',
 '123456',
 '0901111111',
 N'Nam',
@@ -497,30 +500,30 @@ N'Đà Nẵng',
 ),
 (
 'ND002',
-N'Trần Thị Bình',
-'doctor1@gmail.com',
+N'Trần Minh Hải',
+'doctor.tmh@clinic.com',
 '123456',
 '0902222222',
-N'Nữ',
+N'Nam',
 '1985-02-15',
 N'Hà Nội',
 'VT002'
 ),
 (
 'ND003',
-N'Lê Văn Cường',
-'doctor2@gmail.com',
+N'Nguyễn Lê Bích',
+'doctor.nlb@clinic.com',
 '123456',
 '0903333333',
-N'Nam',
+N'Nữ',
 '1982-07-10',
 N'TP Hồ Chí Minh',
 'VT002'
 ),
 (
 'ND004',
-N'Phạm Quốc Dũng',
-'doctor3@gmail.com',
+N'Phạm Văn Đức',
+'doctor.pvd@clinic.com',
 '123456',
 '0904444444',
 N'Nam',
@@ -530,8 +533,8 @@ N'Huế',
 ),
 (
 'ND005',
-N'Nguyễn Thị Lan',
-'doctor4@gmail.com',
+N'Hoàng Thị Lan',
+'doctor.htl@clinic.com',
 '123456',
 '0905555555',
 N'Nữ',
@@ -541,8 +544,8 @@ N'Đà Nẵng',
 ),
 (
 'ND006',
-N'Hoàng Minh Khang',
-'doctor5@gmail.com',
+N'Vũ Minh Khoa',
+'doctor.vmk@clinic.com',
 '123456',
 '0906666666',
 N'Nam',
@@ -552,8 +555,8 @@ N'Quảng Nam',
 ),
 (
 'ND007',
-N'Võ Thị Mai',
-'patient1@gmail.com',
+N'Võ Thị An',
+'patient.an@gmail.com',
 '123456',
 '0907777771',
 N'Nữ',
@@ -564,7 +567,7 @@ N'Đà Nẵng',
 (
 'ND008',
 N'Trần Quốc Bảo',
-'patient2@gmail.com',
+'patient.bao@gmail.com',
 '123456',
 '0907777772',
 N'Nam',
@@ -575,7 +578,7 @@ N'Hội An',
 (
 'ND009',
 N'Lý Thu Hà',
-'patient3@gmail.com',
+'patient.ha@gmail.com',
 '123456',
 '0907777773',
 N'Nữ',
@@ -586,7 +589,7 @@ N'Huế',
 (
 'ND010',
 N'Nguyễn Hoàng Nam',
-'patient4@gmail.com',
+'patient.nam@gmail.com',
 '123456',
 '0907777774',
 N'Nam',
@@ -597,7 +600,7 @@ N'Quảng Trị',
 (
 'ND011',
 N'Phan Thị Hương',
-'patient5@gmail.com',
+'patient.huong@gmail.com',
 '123456',
 '0907777775',
 N'Nữ',
