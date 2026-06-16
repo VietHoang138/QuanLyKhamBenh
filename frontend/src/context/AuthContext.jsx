@@ -5,7 +5,7 @@ const AuthContext = createContext(null);
 
 export const AuthProvider = ({ children }) => {
     const [user, setUser] = useState(null);
-    const [token, setToken] = useState(localStorage.getItem('token'));
+    const [token, setToken] = useState(sessionStorage.getItem('token'));
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
@@ -35,7 +35,7 @@ export const AuthProvider = ({ children }) => {
                 Role: userData.Role || userData.role,
                 FullName: userData.FullName || userData.fullName,
             };
-            localStorage.setItem('token', receivedToken);
+            sessionStorage.setItem('token', receivedToken);
             setToken(receivedToken);
             setUser(normalizedUser);
             return { success: true, role: normalizedUser.Role };
@@ -67,7 +67,7 @@ export const AuthProvider = ({ children }) => {
     };
 
     const logout = () => {
-        localStorage.removeItem('token');
+        sessionStorage.removeItem('token');
         setToken(null);
         setUser(null);
     };
