@@ -22,7 +22,7 @@ export const aiApi = axios.create({
 // Intercept requests to attach JWT Token if available
 api.interceptors.request.use(
     (config) => {
-        const token = localStorage.getItem('token');
+        const token = sessionStorage.getItem('token');
         if (token) {
             config.headers.Authorization = `Bearer ${token}`;
         }
