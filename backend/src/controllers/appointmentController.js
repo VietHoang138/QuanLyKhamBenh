@@ -86,15 +86,16 @@ exports.bookAppointment = async (req, res) => {
         const maBacSi = bsResult.recordset[0].MaBacSi;
 
         // Kiểm tra trùng lịch
+        const startTimeCheck = appointmentTime.split(' - ')[0].trim();
         const checkConflict = await pool.request()
             .input('maBacSi', sql.VarChar, maBacSi)
-            .input('appDate', sql.Date, appointmentDate)
-            .input('appTime', sql.VarChar, appointmentTime)
+            .input('appDate', sql.NVarChar, appointmentDate)
+            .input('appTime', sql.VarChar, startTimeCheck)
             .query(`
                 SELECT MaLichHen FROM LichHen
                 WHERE MaBacSi = @maBacSi
-                  AND CAST(NgayHen AS DATE) = @appDate
-                  AND CAST(NgayHen AS TIME(0)) = @appTime
+                  AND CAST(NgayHen AS DATE) = CONVERT(DATE, @appDate, 23)
+                  AND CONVERT(VARCHAR(5), NgayHen, 108) = @appTime
                   AND TrangThai IN (N'Chờ xác nhận', N'Đã xác nhận')
             `);
 
@@ -110,18 +111,20 @@ exports.bookAppointment = async (req, res) => {
         const nextLhId = (maxLhResult.recordset[0].MaxId || 0) + 1;
         const newMaLichHen = 'LH' + String(nextLhId).padStart(3, '0');
 
-        // Ghép ngày + giờ thành DATETIME
-        const ngayHen = `${appointmentDate} ${appointmentTime}:00`;
+        // Ghép ngày + giờ thành string datetime (lấy giờ bắt đầu của khung giờ, vd: "08:00 - 09:00" => "08:00")
+        // Truyền thẳng string để tránh JS Date bị lệch timezone khi convert sang UTC
+        const startTime = appointmentTime.split(' - ')[0].trim();
+        const ngayHenStr = `${appointmentDate} ${startTime}:00`;
 
         await pool.request()
             .input('maLichHen', sql.VarChar, newMaLichHen)
             .input('maBenhNhan', sql.VarChar, maBenhNhan)
             .input('maBacSi', sql.VarChar, maBacSi)
-            .input('ngayHen', sql.DateTime, new Date(ngayHen))
+            .input('ngayHenStr', sql.NVarChar, ngayHenStr)
             .input('lyDo', sql.NVarChar, reason || null)
             .query(`
                 INSERT INTO LichHen (MaLichHen, MaBenhNhan, MaBacSi, NgayHen, TrangThai, LyDoKham)
-                VALUES (@maLichHen, @maBenhNhan, @maBacSi, @ngayHen, N'Chờ xác nhận', @lyDo)
+                VALUES (@maLichHen, @maBenhNhan, @maBacSi, CONVERT(DATETIME, @ngayHenStr, 120), N'Chờ xác nhận', @lyDo)
             `);
 
         res.status(201).json({ message: 'Đặt lịch hẹn khám thành công' });
@@ -152,9 +155,11 @@ exports.getPatientAppointments = async (req, res) => {
             .input('maBenhNhan', sql.VarChar, maBenhNhan)
             .query(`
                 SELECT
-                    lh.MaLichHen                            AS Id,
-                    CAST(lh.NgayHen AS DATE)                AS AppointmentDate,
-                    CONVERT(VARCHAR(5), lh.NgayHen, 108)    AS AppointmentTime,
+                    lh.MaLichHen                                                        AS Id,
+                    CAST(lh.NgayHen AS DATE)                                             AS AppointmentDate,
+                    CONVERT(VARCHAR(5), lh.NgayHen, 108)
+                        + ' - '
+                        + CONVERT(VARCHAR(5), DATEADD(HOUR, 1, lh.NgayHen), 108)        AS AppointmentTime,
                     lh.TrangThai                            AS Status,
                     lh.LyDoKham                             AS Reason,
                     lh.NgayTao                              AS CreatedAt,
