@@ -10,40 +10,42 @@ const Sidebar = () => {
     const { user } = useAuth();
     if (!user) return null;
 
+    const navClass = ({ isActive }) => isActive ? 'active' : '';
+
     const renderPatientMenu = () => (
         <>
             <li className="sidebar-item">
-                <NavLink to="/patient" end className={({ isActive }) => isActive ? 'active' : ''}>
+                <NavLink to="/patient" end className={navClass}>
                     <Calendar size={18} />
                     <span>Lịch khám của tôi</span>
                 </NavLink>
             </li>
             <li className="sidebar-item">
-                <NavLink to="/patient/book">
+                <NavLink to="/patient/book" className={navClass}>
                     <PlusCircle size={18} />
                     <span>Đặt lịch khám</span>
                 </NavLink>
             </li>
             <li className="sidebar-item">
-                <NavLink to="/patient/history">
+                <NavLink to="/patient/history" className={navClass}>
                     <Clipboard size={18} />
                     <span>Xem bệnh án</span>
                 </NavLink>
             </li>
             <li className="sidebar-item">
-                <NavLink to="/patient/chat-doctor">
+                <NavLink to="/patient/chat-doctor" className={navClass}>
                     <MessageSquare size={18} />
                     <span>Chat với bác sĩ</span>
                 </NavLink>
             </li>
             <li className="sidebar-item">
-                <NavLink to="/patient/chat-ai">
+                <NavLink to="/patient/chat-ai" className={navClass}>
                     <Bot size={18} />
                     <span>Tư vấn AI</span>
                 </NavLink>
             </li>
             <li className="sidebar-item">
-                <NavLink to="/patient/profile">
+                <NavLink to="/patient/profile" className={navClass}>
                     <User size={18} />
                     <span>Hồ sơ cá nhân</span>
                 </NavLink>
@@ -54,19 +56,19 @@ const Sidebar = () => {
     const renderDoctorMenu = () => (
         <>
             <li className="sidebar-item">
-                <NavLink to="/doctor" end>
+                <NavLink to="/doctor" end className={navClass}>
                     <Calendar size={18} />
                     <span>Danh sách lịch khám</span>
                 </NavLink>
             </li>
             <li className="sidebar-item">
-                <NavLink to="/doctor/patients">
+                <NavLink to="/doctor/patients" className={navClass}>
                     <Users size={18} />
                     <span>Quản lý bệnh nhân</span>
                 </NavLink>
             </li>
             <li className="sidebar-item">
-                <NavLink to="/doctor/chat">
+                <NavLink to="/doctor/chat" className={navClass}>
                     <MessageSquare size={18} />
                     <span>Chat với bệnh nhân</span>
                 </NavLink>
@@ -77,25 +79,25 @@ const Sidebar = () => {
     const renderAdminMenu = () => (
         <>
             <li className="sidebar-item">
-                <NavLink to="/admin" end>
+                <NavLink to="/admin" end className={navClass}>
                     <BarChart2 size={18} />
                     <span>Xem thống kê</span>
                 </NavLink>
             </li>
             <li className="sidebar-item">
-                <NavLink to="/admin/accounts">
+                <NavLink to="/admin/accounts" className={navClass}>
                     <Users size={18} />
                     <span>Quản lý tài khoản</span>
                 </NavLink>
             </li>
             <li className="sidebar-item">
-                <NavLink to="/admin/doctors">
+                <NavLink to="/admin/doctors" className={navClass}>
                     <Shield size={18} />
                     <span>Quản lý bác sĩ</span>
                 </NavLink>
             </li>
             <li className="sidebar-item">
-                <NavLink to="/admin/specialties">
+                <NavLink to="/admin/specialties" className={navClass}>
                     <HeartPulse size={18} />
                     <span>Quản lý chuyên khoa</span>
                 </NavLink>
