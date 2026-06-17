@@ -165,10 +165,16 @@ exports.getProfile = async (req, res) => {
                     nd.NgaySinh     AS DateOfBirth,
                     nd.GioiTinh     AS Gender,
                     bs.MaChuyenKhoa AS SpecializationId,
-                    ck.TenChuyenKhoa AS SpecializationName
+                    ck.TenChuyenKhoa AS SpecializationName,
+                    bn.MaBenhNhan   AS MaBenhNhan,
+                    bn.NhomMau      AS BloodType,
+                    bn.DiUng        AS Allergies,
+                    bn.TienSuBenh   AS MedicalHistory,
+                    bn.NguoiLienHeKhanCap AS EmergencyContact
                 FROM NguoiDung nd
                 LEFT JOIN BacSi bs ON bs.MaNguoiDung = nd.MaNguoiDung
                 LEFT JOIN ChuyenKhoa ck ON ck.MaChuyenKhoa = bs.MaChuyenKhoa
+                LEFT JOIN BenhNhan bn ON bn.MaNguoiDung = nd.MaNguoiDung
                 WHERE nd.MaNguoiDung = @id
             `);
 
@@ -188,6 +194,11 @@ exports.getProfile = async (req, res) => {
             Gender: row.Gender,
             SpecializationId: row.SpecializationId,
             SpecializationName: row.SpecializationName,
+            MaBenhNhan: row.MaBenhNhan,
+            BloodType: row.BloodType,
+            Allergies: row.Allergies,
+            MedicalHistory: row.MedicalHistory,
+            EmergencyContact: row.EmergencyContact,
         });
     } catch (err) {
         console.error('Get profile error:', err);
@@ -197,7 +208,7 @@ exports.getProfile = async (req, res) => {
 
 exports.updateProfile = async (req, res) => {
     const userId = req.user.id;
-    const { fullName, phone, address, dateOfBirth, gender } = req.body;
+    const { fullName, phone, address, dateOfBirth, gender, bloodType, allergies, medicalHistory, emergencyContact } = req.body;
 
     if (!fullName) {
         return res.status(400).json({ message: 'Họ tên là bắt buộc' });
@@ -212,6 +223,10 @@ exports.updateProfile = async (req, res) => {
             .input('address', sql.NVarChar, address || null)
             .input('dateOfBirth', sql.Date, dateOfBirth || null)
             .input('gender', sql.NVarChar, gender || null)
+            .input('bloodType', sql.NVarChar, bloodType || null)
+            .input('allergies', sql.NVarChar, allergies || null)
+            .input('medicalHistory', sql.NVarChar, medicalHistory || null)
+            .input('emergencyContact', sql.NVarChar, emergencyContact || null)
             .query(`
                 UPDATE NguoiDung
                 SET HoTen       = @fullName,
@@ -219,7 +234,14 @@ exports.updateProfile = async (req, res) => {
                     DiaChi      = @address,
                     NgaySinh    = @dateOfBirth,
                     GioiTinh    = @gender
-                WHERE MaNguoiDung = @id
+                WHERE MaNguoiDung = @id;
+
+                UPDATE BenhNhan
+                SET NhomMau = @bloodType,
+                    DiUng = @allergies,
+                    TienSuBenh = @medicalHistory,
+                    NguoiLienHeKhanCap = @emergencyContact
+                WHERE MaNguoiDung = @id;
             `);
 
         res.json({ message: 'Cập nhật hồ sơ thành công' });

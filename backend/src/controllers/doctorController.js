@@ -133,13 +133,18 @@ exports.getDoctorPatients = async (req, res) => {
             .input('maBacSi', sql.VarChar, maBacSi)
             .query(`
                 SELECT DISTINCT
-                    nd.MaNguoiDung  AS Id,
-                    nd.HoTen        AS FullName,
-                    nd.Email        AS Email,
-                    nd.SoDienThoai  AS Phone,
-                    nd.GioiTinh     AS Gender,
-                    nd.NgaySinh     AS DateOfBirth,
-                    nd.DiaChi       AS Address
+                    nd.MaNguoiDung          AS Id,
+                    nd.HoTen                AS FullName,
+                    nd.Email                AS Email,
+                    nd.SoDienThoai          AS Phone,
+                    nd.GioiTinh             AS Gender,
+                    nd.NgaySinh             AS DateOfBirth,
+                    nd.DiaChi               AS Address,
+                    bn.MaBenhNhan           AS MaBenhNhan,
+                    bn.NhomMau              AS BloodType,
+                    bn.DiUng                AS Allergies,
+                    bn.TienSuBenh           AS MedicalHistory,
+                    bn.NguoiLienHeKhanCap   AS EmergencyContact
                 FROM NguoiDung nd
                 INNER JOIN BenhNhan bn ON bn.MaNguoiDung = nd.MaNguoiDung
                 INNER JOIN LichHen lh ON lh.MaBenhNhan = bn.MaBenhNhan
@@ -290,5 +295,35 @@ exports.getPatientMedicalHistory = async (req, res) => {
     } catch (err) {
         console.error('Error getting patient medical history:', err);
         res.status(500).json({ message: 'Lỗi server khi lấy lịch sử bệnh án' });
+    }
+};
+
+// Cập nhật thông tin y khoa bệnh nhân (dành cho bác sĩ)
+exports.updatePatientClinicalInfo = async (req, res) => {
+    const { patientId } = req.params; // MaNguoiDung
+    const { bloodType, allergies, medicalHistory, emergencyContact } = req.body;
+
+    try {
+        const pool = await poolPromise;
+        
+        await pool.request()
+            .input('patientId', sql.VarChar, patientId)
+            .input('bloodType', sql.NVarChar, bloodType || null)
+            .input('allergies', sql.NVarChar, allergies || null)
+            .input('medicalHistory', sql.NVarChar, medicalHistory || null)
+            .input('emergencyContact', sql.NVarChar, emergencyContact || null)
+            .query(`
+                UPDATE BenhNhan
+                SET NhomMau = @bloodType,
+                    DiUng = @allergies,
+                    TienSuBenh = @medicalHistory,
+                    NguoiLienHeKhanCap = @emergencyContact
+                WHERE MaNguoiDung = @patientId
+            `);
+
+        res.json({ message: 'Cập nhật thông tin y khoa thành công' });
+    } catch (err) {
+        console.error('Error updating patient clinical info:', err);
+        res.status(500).json({ message: 'Lỗi server khi cập nhật thông tin y khoa bệnh nhân' });
     }
 };

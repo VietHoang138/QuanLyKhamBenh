@@ -6,6 +6,7 @@ const { authenticateToken, authorizeRoles } = require('../middlewares/auth');
 router.get('/appointments', authenticateToken, authorizeRoles('doctor'), doctorController.getDoctorAppointments);
 router.put('/appointments/status', authenticateToken, authorizeRoles('doctor'), doctorController.updateAppointmentStatus);
 router.get('/patients', authenticateToken, authorizeRoles('doctor'), doctorController.getDoctorPatients);
+router.put('/patients/:patientId', authenticateToken, authorizeRoles('doctor'), doctorController.updatePatientClinicalInfo);
 router.post('/records', authenticateToken, authorizeRoles('doctor'), doctorController.createMedicalRecord);
 router.get('/records/history/:patientId', authenticateToken, authorizeRoles('doctor', 'patient'), doctorController.getPatientMedicalHistory);
 
