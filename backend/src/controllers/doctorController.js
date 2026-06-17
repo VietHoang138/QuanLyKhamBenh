@@ -303,6 +303,7 @@ exports.getPatientMedicalHistory = async (req, res) => {
         }
         const maBenhNhan = bnResult.recordset[0].MaBenhNhan;
 
+        // Lấy danh sách bệnh án
         const result = await pool.request()
             .input('maBenhNhan', sql.VarChar, maBenhNhan)
             .query(`
@@ -324,6 +325,37 @@ exports.getPatientMedicalHistory = async (req, res) => {
                 ORDER BY ba.NgayTao DESC
             `);
 
+        // Lấy danh sách thuốc kê đơn chi tiết
+        const drugsResult = await pool.request()
+            .input('maBenhNhan', sql.VarChar, maBenhNhan)
+            .query(`
+                SELECT
+                    ct.MaChiTiet        AS Id,
+                    dt.MaBenhAn         AS MedicalRecordId,
+                    ct.TenThuoc         AS DrugName,
+                    ct.LieuDung         AS Dosage,
+                    ct.TanSuat          AS Frequency,
+                    ct.SoNgayDung       AS Days
+                FROM ChiTietDonThuoc ct
+                INNER JOIN DonThuoc dt ON ct.MaDonThuoc = dt.MaDonThuoc
+                INNER JOIN BenhAn ba ON dt.MaBenhAn = ba.MaBenhAn
+                WHERE ba.MaBenhNhan = @maBenhNhan
+            `);
+
+        const drugsByRecord = {};
+        drugsResult.recordset.forEach(drug => {
+            if (!drugsByRecord[drug.MedicalRecordId]) {
+                drugsByRecord[drug.MedicalRecordId] = [];
+            }
+            drugsByRecord[drug.MedicalRecordId].push({
+                Id: drug.Id,
+                DrugName: drug.DrugName,
+                Dosage: drug.Dosage,
+                Frequency: drug.Frequency,
+                Days: drug.Days
+            });
+        });
+
         // Tách AISummary ra khỏi GhiChu nếu có tiền tố [AI]
         const mapped = result.recordset.map(row => {
             let doctorNotes = row.DoctorNotes || '';
@@ -334,7 +366,12 @@ exports.getPatientMedicalHistory = async (req, res) => {
                 aiSummary = doctorNotes.substring(aiIndex + aiPrefix.length).split('\n\n')[0];
                 doctorNotes = doctorNotes.replace(`\n\n${aiPrefix}${aiSummary}`, '').replace(`${aiPrefix}${aiSummary}`, '').trim();
             }
-            return { ...row, DoctorNotes: doctorNotes || null, AISummary: aiSummary || null };
+            return {
+                ...row,
+                DoctorNotes: doctorNotes || null,
+                AISummary: aiSummary || null,
+                Drugs: drugsByRecord[row.Id] || []
+            };
         });
 
         res.json(mapped);

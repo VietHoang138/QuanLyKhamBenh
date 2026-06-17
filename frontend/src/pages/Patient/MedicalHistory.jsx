@@ -127,9 +127,35 @@ const MedicalHistory = () => {
                                     <h3 style={{ fontSize: '1rem', color: '#3B82F6', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
                                         <Clipboard size={16} /> Đơn thuốc điều trị
                                     </h3>
-                                    <div style={{ fontSize: '0.95rem', color: 'var(--text-primary)', background: 'rgba(255,255,255,0.02)', padding: '1rem', borderRadius: 'var(--radius-sm)', borderLeft: '3px solid #3B82F6', whiteSpace: 'pre-line' }}>
-                                        {selectedRecord.Prescription || 'Không kê đơn thuốc'}
-                                    </div>
+                                    
+                                    {selectedRecord.Drugs && selectedRecord.Drugs.length > 0 ? (
+                                        <div style={{ background: 'rgba(255,255,255,0.015)', border: '1px solid var(--border-color)', borderLeft: '3px solid #3B82F6', borderRadius: 'var(--radius-sm)', padding: '1rem', overflowX: 'auto' }}>
+                                            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem', textAlign: 'left' }}>
+                                                <thead>
+                                                    <tr style={{ borderBottom: '1px solid var(--border-color)', color: 'var(--text-muted)' }}>
+                                                        <th style={{ padding: '0.5rem 0.25rem', fontWeight: 600 }}>Tên thuốc</th>
+                                                        <th style={{ padding: '0.5rem 0.25rem', fontWeight: 600 }}>Liều lượng</th>
+                                                        <th style={{ padding: '0.5rem 0.25rem', fontWeight: 600 }}>Tần suất</th>
+                                                        <th style={{ padding: '0.5rem 0.25rem', fontWeight: 600, textAlign: 'right' }}>Số ngày</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    {selectedRecord.Drugs.map((drug, index) => (
+                                                        <tr key={drug.Id || index} style={{ borderBottom: index === selectedRecord.Drugs.length - 1 ? 'none' : '1px solid rgba(255,255,255,0.05)' }}>
+                                                            <td style={{ padding: '0.5rem 0.25rem', fontWeight: 600, color: '#FFF' }}>{drug.DrugName}</td>
+                                                            <td style={{ padding: '0.5rem 0.25rem', color: 'var(--text-secondary)' }}>{drug.Dosage || '—'}</td>
+                                                            <td style={{ padding: '0.5rem 0.25rem', color: 'var(--text-secondary)' }}>{drug.Frequency || '—'}</td>
+                                                            <td style={{ padding: '0.5rem 0.25rem', color: 'var(--text-secondary)', textAlign: 'right' }}>{drug.Days ? `${drug.Days} ngày` : '—'}</td>
+                                                        </tr>
+                                                    ))}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    ) : (
+                                        <div style={{ fontSize: '0.95rem', color: 'var(--text-primary)', background: 'rgba(255,255,255,0.02)', padding: '1rem', borderRadius: 'var(--radius-sm)', borderLeft: '3px solid #3B82F6', whiteSpace: 'pre-line' }}>
+                                            {selectedRecord.Prescription || 'Không kê đơn thuốc'}
+                                        </div>
+                                    )}
                                 </div>
 
                                 {/* Doctor Notes */}
