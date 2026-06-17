@@ -2,7 +2,7 @@ import React from 'react';
 import { NavLink } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { 
-    Calendar, User, Clipboard, MessageSquare, Bot, 
+    Home, Calendar, User, Clipboard, MessageSquare, Bot, 
     Users, PlusCircle, BarChart2, Shield, HeartPulse 
 } from 'lucide-react';
 
@@ -16,6 +16,12 @@ const Sidebar = () => {
         <>
             <li className="sidebar-item">
                 <NavLink to="/patient" end className={navClass}>
+                    <Home size={18} />
+                    <span>Trang chủ</span>
+                </NavLink>
+            </li>
+            <li className="sidebar-item">
+                <NavLink to="/patient/appointments" className={navClass}>
                     <Calendar size={18} />
                     <span>Lịch khám của tôi</span>
                 </NavLink>

@@ -126,9 +126,9 @@ const BookAppointment = () => {
                 appointmentTime: selectedSlot,
                 reason
             });
-            setSuccess('Đặt lịch hẹn khám thành công! Đang quay lại trang chủ...');
+            setSuccess('Đặt lịch hẹn khám thành công! Đang chuyển hướng đến danh sách lịch hẹn...');
             setTimeout(() => {
-                navigate('/patient');
+                navigate('/patient/appointments');
             }, 2000);
         } catch (err) {
             setError(err.response?.data?.message || 'Có lỗi xảy ra trong quá trình đặt lịch.');

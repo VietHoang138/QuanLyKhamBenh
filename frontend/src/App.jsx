@@ -11,6 +11,7 @@ import Layout from './components/Layout';
 import ProtectedRoute from './components/ProtectedRoute';
 
 // Patient Pages
+import PatientHome from './pages/Patient/Home';
 import PatientDashboard from './pages/Patient/Dashboard';
 import BookAppointment from './pages/Patient/BookAppointment';
 import MedicalHistory from './pages/Patient/MedicalHistory';
@@ -46,7 +47,8 @@ function App() {
               
               {/* Patient Routes */}
               <Route element={<ProtectedRoute allowedRoles={['patient']} />}>
-                <Route path="/patient" element={<PatientDashboard />} />
+                <Route path="/patient" element={<PatientHome />} />
+                <Route path="/patient/appointments" element={<PatientDashboard />} />
                 <Route path="/patient/book" element={<BookAppointment />} />
                 <Route path="/patient/history" element={<MedicalHistory />} />
                 <Route path="/patient/chat-doctor" element={<ChatDoctor />} />
