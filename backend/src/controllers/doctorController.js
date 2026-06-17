@@ -161,7 +161,7 @@ exports.getDoctorPatients = async (req, res) => {
 // Tạo bệnh án
 exports.createMedicalRecord = async (req, res) => {
     const doctorUserId = req.user.id;
-    const { appointmentId, patientId, symptoms, diagnosis, prescription, doctorNotes, aiSummary } = req.body;
+    const { appointmentId, patientId, symptoms, diagnosis, prescription, drugs, doctorNotes, aiSummary } = req.body;
 
     if (!appointmentId || !patientId || !diagnosis) {
         return res.status(400).json({ message: 'Mã lịch hẹn, mã bệnh nhân và chẩn đoán là bắt buộc' });
@@ -220,6 +220,52 @@ exports.createMedicalRecord = async (req, res) => {
                 VALUES
                     (@maBenhAn, @maLichHen, @maBenhNhan, @maBacSi, @trieuChung, @chanDoan, @phuongAn, @ghiChu)
             `);
+
+        // Nếu có thuốc kê đơn chi tiết, lưu vào bảng DonThuoc và ChiTietDonThuoc
+        if (drugs && Array.isArray(drugs) && drugs.length > 0) {
+            // Tạo MaDonThuoc mới
+            const maxDtResult = await pool.request().query(`
+                SELECT MAX(CAST(SUBSTRING(MaDonThuoc, 3, LEN(MaDonThuoc)) AS INT)) AS MaxId
+                FROM DonThuoc
+            `);
+            const nextDtId = (maxDtResult.recordset[0].MaxId || 0) + 1;
+            const newMaDonThuoc = 'DT' + String(nextDtId).padStart(3, '0');
+
+            // Lưu đơn thuốc
+            await pool.request()
+                .input('maDonThuoc', sql.VarChar, newMaDonThuoc)
+                .input('maBenhAn', sql.VarChar, newMaBenhAn)
+                .query(`
+                    INSERT INTO DonThuoc (MaDonThuoc, MaBenhAn, NgayKeDon)
+                    VALUES (@maDonThuoc, @maBenhAn, GETDATE())
+                `);
+
+            // Lưu chi tiết đơn thuốc
+            const maxCtResult = await pool.request().query(`
+                SELECT MAX(CAST(SUBSTRING(MaChiTiet, 3, LEN(MaChiTiet)) AS INT)) AS MaxId
+                FROM ChiTietDonThuoc
+            `);
+            let nextCtId = (maxCtResult.recordset[0].MaxId || 0) + 1;
+
+            for (const drug of drugs) {
+                if (!drug.tenThuoc || !drug.tenThuoc.trim()) continue;
+
+                const newMaChiTiet = 'CT' + String(nextCtId).padStart(3, '0');
+                nextCtId++;
+
+                await pool.request()
+                    .input('maChiTiet', sql.VarChar, newMaChiTiet)
+                    .input('maDonThuoc', sql.VarChar, newMaDonThuoc)
+                    .input('tenThuoc', sql.NVarChar, drug.tenThuoc)
+                    .input('lieuDung', sql.NVarChar, drug.lieuDung || null)
+                    .input('tanSuat', sql.NVarChar, drug.tanSuat || null)
+                    .input('soNgayDung', sql.Int, drug.soNgayDung ? parseInt(drug.soNgayDung) : null)
+                    .query(`
+                        INSERT INTO ChiTietDonThuoc (MaChiTiet, MaDonThuoc, TenThuoc, LieuDung, TanSuat, SoNgayDung)
+                        VALUES (@maChiTiet, @maDonThuoc, @tenThuoc, @lieuDung, @tanSuat, @soNgayDung)
+                    `);
+            }
+        }
 
         // Cập nhật trạng thái lịch hẹn → Hoàn thành
         await pool.request()
