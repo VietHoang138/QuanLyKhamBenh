@@ -54,6 +54,7 @@ export const doctorService = {
     getPatients: () => api.get('/doctor/patients'),
     createMedicalRecord: (recordData) => api.post('/doctor/records', recordData),
     getPatientHistory: (patientId) => api.get(`/doctor/records/history/${patientId}`),
+    updatePatientClinicalInfo: (patientId, clinicalData) => api.put(`/doctor/patients/${patientId}`, clinicalData),
 };
 
 export const adminService = {

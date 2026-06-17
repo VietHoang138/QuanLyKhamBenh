@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { doctorService } from '../../services/api';
-import { Users, User, Clipboard, Calendar, FileText, Activity, AlertCircle } from 'lucide-react';
+import { Users, User, Clipboard, Calendar, FileText, Activity, AlertCircle, Edit } from 'lucide-react';
 
 const PatientList = () => {
     const [patients, setPatients] = useState([]);
@@ -10,6 +10,17 @@ const PatientList = () => {
     const [loadingPatients, setLoadingPatients] = useState(true);
     const [loadingHistory, setLoadingHistory] = useState(false);
     const [error, setError] = useState('');
+
+    // State cho chỉnh sửa thông tin lâm sàng của bác sĩ
+    const [isEditingClinical, setIsEditingClinical] = useState(false);
+    const [editForm, setEditForm] = useState({
+        bloodType: '',
+        emergencyContact: '',
+        allergies: '',
+        medicalHistory: ''
+    });
+    const [updatingClinical, setUpdatingClinical] = useState(false);
+    const [updateError, setUpdateError] = useState('');
 
     const fetchPatients = async () => {
         try {
@@ -38,6 +49,36 @@ const PatientList = () => {
         }
     };
 
+    const handleSaveClinical = async () => {
+        setUpdatingClinical(true);
+        setUpdateError('');
+        try {
+            await doctorService.updatePatientClinicalInfo(selectedPatient.Id, {
+                bloodType: editForm.bloodType,
+                emergencyContact: editForm.emergencyContact,
+                allergies: editForm.allergies,
+                medicalHistory: editForm.medicalHistory
+            });
+            
+            const updatedPatient = {
+                ...selectedPatient,
+                BloodType: editForm.bloodType,
+                EmergencyContact: editForm.emergencyContact,
+                Allergies: editForm.allergies,
+                MedicalHistory: editForm.medicalHistory
+            };
+            
+            setSelectedPatient(updatedPatient);
+            setPatients(prev => prev.map(p => p.Id === selectedPatient.Id ? updatedPatient : p));
+            setIsEditingClinical(false);
+        } catch (err) {
+            console.error('Error updating patient clinical info:', err);
+            setUpdateError('Không thể cập nhật thông tin y khoa. Vui lòng thử lại.');
+        } finally {
+            setUpdatingClinical(false);
+        }
+    };
+
     useEffect(() => {
         fetchPatients();
     }, []);
@@ -45,6 +86,14 @@ const PatientList = () => {
     useEffect(() => {
         if (selectedPatient) {
             fetchPatientHistory(selectedPatient.Id);
+            setEditForm({
+                bloodType: selectedPatient.BloodType || '',
+                emergencyContact: selectedPatient.EmergencyContact || '',
+                allergies: selectedPatient.Allergies || '',
+                medicalHistory: selectedPatient.MedicalHistory || ''
+            });
+            setIsEditingClinical(false);
+            setUpdateError('');
         }
     }, [selectedPatient]);
 
@@ -130,44 +179,152 @@ const PatientList = () => {
                                         NS: {selectedPatient.DateOfBirth ? new Date(selectedPatient.DateOfBirth).toLocaleDateString('vi-VN') : 'N/A'} • Địa chỉ: {selectedPatient.Address || 'N/A'}
                                     </p>
                                     
-                                    {/* Thông tin chi tiết từ hồ sơ Bệnh Nhân */}
-                                    <div style={{
-                                        display: 'grid',
-                                        gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))',
-                                        gap: '0.75rem',
-                                        background: 'rgba(255, 255, 255, 0.015)',
-                                        border: '1px solid var(--border-color)',
-                                        borderRadius: 'var(--radius-sm)',
-                                        padding: '1rem',
-                                        marginTop: '1rem'
-                                    }}>
-                                        <div>
-                                            <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>Mã bệnh nhân</span>
-                                            <strong style={{ fontSize: '0.85rem', color: 'var(--primary)' }}>{selectedPatient.MaBenhNhan || 'N/A'}</strong>
+                                    {/* Bác sĩ có thể chỉnh sửa thông tin lâm sàng của bệnh nhân */}
+                                    {!isEditingClinical ? (
+                                        <>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '1rem', marginBottom: '0.5rem' }}>
+                                                <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-primary)' }}>Thông tin lâm sàng</span>
+                                                <button
+                                                    onClick={() => setIsEditingClinical(true)}
+                                                    className="btn btn-secondary"
+                                                    style={{ fontSize: '0.75rem', padding: '0.25rem 0.5rem', display: 'flex', alignItems: 'center', gap: '0.25rem' }}
+                                                >
+                                                    <Edit size={12} /> Chỉnh sửa
+                                                </button>
+                                            </div>
+                                            
+                                            {/* Giao diện xem thông tin */}
+                                            <div style={{
+                                                display: 'grid',
+                                                gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))',
+                                                gap: '0.75rem',
+                                                background: 'rgba(255, 255, 255, 0.015)',
+                                                border: '1px solid var(--border-color)',
+                                                borderRadius: 'var(--radius-sm)',
+                                                padding: '1rem'
+                                            }}>
+                                                <div>
+                                                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>Mã bệnh nhân</span>
+                                                    <strong style={{ fontSize: '0.85rem', color: 'var(--primary)' }}>{selectedPatient.MaBenhNhan || 'N/A'}</strong>
+                                                </div>
+                                                <div>
+                                                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>Nhóm máu</span>
+                                                    <strong style={{ fontSize: '0.85rem', color: selectedPatient.BloodType ? '#10B981' : 'inherit' }}>
+                                                        {selectedPatient.BloodType || 'Không xác định'}
+                                                    </strong>
+                                                </div>
+                                                <div>
+                                                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>Liên hệ khẩn cấp</span>
+                                                    <strong style={{ fontSize: '0.85rem' }}>{selectedPatient.EmergencyContact || 'N/A'}</strong>
+                                                </div>
+                                                <div style={{ gridColumn: '1 / -1', borderTop: '1px dashed var(--border-color)', paddingTop: '0.5rem' }}>
+                                                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>Dị ứng</span>
+                                                    <strong style={{ fontSize: '0.85rem', color: selectedPatient.Allergies ? '#EF4444' : 'inherit' }}>
+                                                        {selectedPatient.Allergies || 'Không ghi nhận'}
+                                                    </strong>
+                                                </div>
+                                                <div style={{ gridColumn: '1 / -1', borderTop: '1px dashed var(--border-color)', paddingTop: '0.5rem' }}>
+                                                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>Tiền sử bệnh án</span>
+                                                    <strong style={{ fontSize: '0.85rem', color: 'var(--text-primary)' }}>
+                                                        {selectedPatient.MedicalHistory || 'Không ghi nhận'}
+                                                    </strong>
+                                                </div>
+                                            </div>
+                                        </>
+                                    ) : (
+                                        /* Giao diện sửa thông tin */
+                                        <div style={{
+                                            background: 'rgba(255, 255, 255, 0.02)',
+                                            border: '1px solid var(--primary)',
+                                            borderRadius: 'var(--radius-sm)',
+                                            padding: '1rem',
+                                            marginTop: '1rem',
+                                            display: 'flex',
+                                            flexDirection: 'column',
+                                            gap: '0.75rem'
+                                        }}>
+                                            <h4 style={{ fontSize: '0.85rem', color: 'var(--primary)', margin: 0 }}>Chỉnh sửa thông tin y khoa</h4>
+                                            
+                                            {updateError && (
+                                                <div style={{ color: '#EF4444', fontSize: '0.8rem', backgroundColor: 'rgba(239,68,68,0.1)', padding: '0.4rem 0.6rem', borderRadius: 'var(--radius-sm)' }}>
+                                                    {updateError}
+                                                </div>
+                                            )}
+
+                                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '0.75rem' }}>
+                                                <div className="form-group" style={{ marginBottom: 0 }}>
+                                                    <label className="form-label" style={{ fontSize: '0.75rem', marginBottom: '0.25rem' }}>Nhóm máu</label>
+                                                    <select
+                                                        className="form-input"
+                                                        style={{ fontSize: '0.85rem', padding: '0.35rem 0.5rem', background: '#0D1322', color: '#FFF' }}
+                                                        value={editForm.bloodType}
+                                                        onChange={(e) => setEditForm({ ...editForm, bloodType: e.target.value })}
+                                                    >
+                                                        <option value="">--Chọn--</option>
+                                                        <option value="A+">A+</option>
+                                                        <option value="A-">A-</option>
+                                                        <option value="B+">B+</option>
+                                                        <option value="B-">B-</option>
+                                                        <option value="O+">O+</option>
+                                                        <option value="O-">O-</option>
+                                                        <option value="AB+">AB+</option>
+                                                        <option value="AB-">AB-</option>
+                                                    </select>
+                                                </div>
+                                                <div className="form-group" style={{ marginBottom: 0 }}>
+                                                    <label className="form-label" style={{ fontSize: '0.75rem', marginBottom: '0.25rem' }}>Liên hệ khẩn cấp</label>
+                                                    <input
+                                                        type="text"
+                                                        className="form-input"
+                                                        style={{ fontSize: '0.85rem', padding: '0.35rem 0.5rem' }}
+                                                        value={editForm.emergencyContact}
+                                                        onChange={(e) => setEditForm({ ...editForm, emergencyContact: e.target.value })}
+                                                    />
+                                                </div>
+                                            </div>
+
+                                            <div className="form-group" style={{ marginBottom: 0 }}>
+                                                <label className="form-label" style={{ fontSize: '0.75rem', marginBottom: '0.25rem' }}>Dị ứng</label>
+                                                <textarea
+                                                    className="form-input"
+                                                    rows="2"
+                                                    style={{ fontSize: '0.85rem', padding: '0.35rem 0.5rem', background: '#0D1322', color: '#FFF', resize: 'vertical', fontFamily: 'inherit' }}
+                                                    value={editForm.allergies}
+                                                    onChange={(e) => setEditForm({ ...editForm, allergies: e.target.value })}
+                                                />
+                                            </div>
+
+                                            <div className="form-group" style={{ marginBottom: 0 }}>
+                                                <label className="form-label" style={{ fontSize: '0.75rem', marginBottom: '0.25rem' }}>Tiền sử bệnh án</label>
+                                                <textarea
+                                                    className="form-input"
+                                                    rows="3"
+                                                    style={{ fontSize: '0.85rem', padding: '0.35rem 0.5rem', background: '#0D1322', color: '#FFF', resize: 'vertical', fontFamily: 'inherit' }}
+                                                    value={editForm.medicalHistory}
+                                                    onChange={(e) => setEditForm({ ...editForm, medicalHistory: e.target.value })}
+                                                />
+                                            </div>
+
+                                            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem', marginTop: '0.25rem' }}>
+                                                <button
+                                                    onClick={() => setIsEditingClinical(false)}
+                                                    className="btn btn-secondary"
+                                                    style={{ fontSize: '0.8rem', padding: '0.35rem 0.75rem' }}
+                                                    disabled={updatingClinical}
+                                                >
+                                                    Hủy
+                                                </button>
+                                                <button
+                                                    onClick={handleSaveClinical}
+                                                    className="btn btn-primary"
+                                                    style={{ fontSize: '0.8rem', padding: '0.35rem 0.75rem' }}
+                                                    disabled={updatingClinical}
+                                                >
+                                                    {updatingClinical ? 'Đang lưu...' : 'Lưu'}
+                                                </button>
+                                            </div>
                                         </div>
-                                        <div>
-                                            <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>Nhóm máu</span>
-                                            <strong style={{ fontSize: '0.85rem', color: selectedPatient.BloodType ? '#10B981' : 'inherit' }}>
-                                                {selectedPatient.BloodType || 'Không xác định'}
-                                            </strong>
-                                        </div>
-                                        <div>
-                                            <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>Liên hệ khẩn cấp</span>
-                                            <strong style={{ fontSize: '0.85rem' }}>{selectedPatient.EmergencyContact || 'N/A'}</strong>
-                                        </div>
-                                        <div style={{ gridColumn: '1 / -1', borderTop: '1px dashed var(--border-color)', paddingTop: '0.5rem' }}>
-                                            <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>Dị ứng</span>
-                                            <strong style={{ fontSize: '0.85rem', color: selectedPatient.Allergies ? '#EF4444' : 'inherit' }}>
-                                                {selectedPatient.Allergies || 'Không ghi nhận'}
-                                            </strong>
-                                        </div>
-                                        <div style={{ gridColumn: '1 / -1', borderTop: '1px dashed var(--border-color)', paddingTop: '0.5rem' }}>
-                                            <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>Tiền sử bệnh án</span>
-                                            <strong style={{ fontSize: '0.85rem', color: 'var(--text-primary)' }}>
-                                                {selectedPatient.MedicalHistory || 'Không ghi nhận'}
-                                            </strong>
-                                        </div>
-                                    </div>
+                                    )}
                                 </div>
 
                                 {loadingHistory ? (

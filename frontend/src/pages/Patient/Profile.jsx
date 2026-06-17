@@ -220,9 +220,12 @@ const Profile = () => {
 
                         {/* Cột phải: Thông tin lâm sàng & Sức khỏe */}
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', borderLeft: '1px solid var(--border-color)', paddingLeft: '2.5rem' }}>
-                            <h3 style={{ fontSize: '1.05rem', color: '#10B981', borderBottom: '1px dashed var(--border-color)', paddingBottom: '0.5rem', marginBottom: '0.5rem' }}>
+                            <h3 style={{ fontSize: '1.05rem', color: '#10B981', borderBottom: '1px dashed var(--border-color)', paddingBottom: '0.5rem', marginBottom: '0.25rem' }}>
                                 Chỉ số sức khỏe & Bệnh sử
                             </h3>
+                            <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', fontStyle: 'italic', marginBottom: '0.5rem' }}>
+                                * Thông tin y khoa do bác sĩ cập nhật, bệnh nhân chỉ được xem.
+                            </span>
 
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '1rem' }}>
                                 {/* Blood Type */}
@@ -232,8 +235,8 @@ const Profile = () => {
                                         id="bloodType"
                                         className="form-input"
                                         value={formData.bloodType}
-                                        onChange={handleChange}
-                                        style={{ background: '#0D1322', color: '#FFF' }}
+                                        disabled
+                                        style={{ background: '#0D1322', color: '#FFF', opacity: 0.6, cursor: 'not-allowed' }}
                                     >
                                         <option value="">--Chọn--</option>
                                         <option value="A+">A+</option>
@@ -256,7 +259,8 @@ const Profile = () => {
                                         className="form-input"
                                         placeholder="Tên & SĐT người thân"
                                         value={formData.emergencyContact}
-                                        onChange={handleChange}
+                                        disabled
+                                        style={{ opacity: 0.6, cursor: 'not-allowed' }}
                                     />
                                 </div>
                             </div>
@@ -268,10 +272,10 @@ const Profile = () => {
                                     id="allergies"
                                     className="form-input"
                                     rows="2"
-                                    placeholder="Thuốc, thực phẩm, thời tiết..."
+                                    placeholder="Không có ghi nhận dị ứng"
                                     value={formData.allergies}
-                                    onChange={handleChange}
-                                    style={{ background: '#0D1322', color: '#FFF', resize: 'vertical', fontFamily: 'inherit' }}
+                                    disabled
+                                    style={{ background: '#0D1322', color: '#FFF', resize: 'vertical', fontFamily: 'inherit', opacity: 0.6, cursor: 'not-allowed' }}
                                 />
                             </div>
 
@@ -282,10 +286,10 @@ const Profile = () => {
                                     id="medicalHistory"
                                     className="form-input"
                                     rows="3"
-                                    placeholder="Bệnh lý mãn tính, lịch sử phẫu thuật..."
+                                    placeholder="Không có ghi nhận bệnh sử"
                                     value={formData.medicalHistory}
-                                    onChange={handleChange}
-                                    style={{ background: '#0D1322', color: '#FFF', resize: 'vertical', fontFamily: 'inherit' }}
+                                    disabled
+                                    style={{ background: '#0D1322', color: '#FFF', resize: 'vertical', fontFamily: 'inherit', opacity: 0.6, cursor: 'not-allowed' }}
                                 />
                             </div>
                         </div>
