@@ -133,13 +133,18 @@ exports.getDoctorPatients = async (req, res) => {
             .input('maBacSi', sql.VarChar, maBacSi)
             .query(`
                 SELECT DISTINCT
-                    nd.MaNguoiDung  AS Id,
-                    nd.HoTen        AS FullName,
-                    nd.Email        AS Email,
-                    nd.SoDienThoai  AS Phone,
-                    nd.GioiTinh     AS Gender,
-                    nd.NgaySinh     AS DateOfBirth,
-                    nd.DiaChi       AS Address
+                    nd.MaNguoiDung          AS Id,
+                    nd.HoTen                AS FullName,
+                    nd.Email                AS Email,
+                    nd.SoDienThoai          AS Phone,
+                    nd.GioiTinh             AS Gender,
+                    nd.NgaySinh             AS DateOfBirth,
+                    nd.DiaChi               AS Address,
+                    bn.MaBenhNhan           AS MaBenhNhan,
+                    bn.NhomMau              AS BloodType,
+                    bn.DiUng                AS Allergies,
+                    bn.TienSuBenh           AS MedicalHistory,
+                    bn.NguoiLienHeKhanCap   AS EmergencyContact
                 FROM NguoiDung nd
                 INNER JOIN BenhNhan bn ON bn.MaNguoiDung = nd.MaNguoiDung
                 INNER JOIN LichHen lh ON lh.MaBenhNhan = bn.MaBenhNhan

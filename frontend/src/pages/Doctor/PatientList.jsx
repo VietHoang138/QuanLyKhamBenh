@@ -126,9 +126,48 @@ const PatientList = () => {
                             <>
                                 <div style={{ borderBottom: '1px solid var(--border-color)', paddingBottom: '1rem', marginBottom: '1.5rem' }}>
                                     <h2 style={{ fontSize: '1.25rem', marginBottom: '0.25rem' }}>Lịch sử bệnh án: {selectedPatient.FullName}</h2>
-                                    <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>
+                                    <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', marginBottom: '1rem' }}>
                                         NS: {selectedPatient.DateOfBirth ? new Date(selectedPatient.DateOfBirth).toLocaleDateString('vi-VN') : 'N/A'} • Địa chỉ: {selectedPatient.Address || 'N/A'}
                                     </p>
+                                    
+                                    {/* Thông tin chi tiết từ hồ sơ Bệnh Nhân */}
+                                    <div style={{
+                                        display: 'grid',
+                                        gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))',
+                                        gap: '0.75rem',
+                                        background: 'rgba(255, 255, 255, 0.015)',
+                                        border: '1px solid var(--border-color)',
+                                        borderRadius: 'var(--radius-sm)',
+                                        padding: '1rem',
+                                        marginTop: '1rem'
+                                    }}>
+                                        <div>
+                                            <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>Mã bệnh nhân</span>
+                                            <strong style={{ fontSize: '0.85rem', color: 'var(--primary)' }}>{selectedPatient.MaBenhNhan || 'N/A'}</strong>
+                                        </div>
+                                        <div>
+                                            <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>Nhóm máu</span>
+                                            <strong style={{ fontSize: '0.85rem', color: selectedPatient.BloodType ? '#10B981' : 'inherit' }}>
+                                                {selectedPatient.BloodType || 'Không xác định'}
+                                            </strong>
+                                        </div>
+                                        <div>
+                                            <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>Liên hệ khẩn cấp</span>
+                                            <strong style={{ fontSize: '0.85rem' }}>{selectedPatient.EmergencyContact || 'N/A'}</strong>
+                                        </div>
+                                        <div style={{ gridColumn: '1 / -1', borderTop: '1px dashed var(--border-color)', paddingTop: '0.5rem' }}>
+                                            <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>Dị ứng</span>
+                                            <strong style={{ fontSize: '0.85rem', color: selectedPatient.Allergies ? '#EF4444' : 'inherit' }}>
+                                                {selectedPatient.Allergies || 'Không ghi nhận'}
+                                            </strong>
+                                        </div>
+                                        <div style={{ gridColumn: '1 / -1', borderTop: '1px dashed var(--border-color)', paddingTop: '0.5rem' }}>
+                                            <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>Tiền sử bệnh án</span>
+                                            <strong style={{ fontSize: '0.85rem', color: 'var(--text-primary)' }}>
+                                                {selectedPatient.MedicalHistory || 'Không ghi nhận'}
+                                            </strong>
+                                        </div>
+                                    </div>
                                 </div>
 
                                 {loadingHistory ? (
