@@ -10,9 +10,13 @@ const CreateRecord = () => {
 
     const [symptoms, setSymptoms] = useState('');
     const [diagnosis, setDiagnosis] = useState('');
-    const [prescription, setPrescription] = useState('');
     const [doctorNotes, setDoctorNotes] = useState('');
     const [aiSummary, setAiSummary] = useState('');
+    
+    // State đơn thuốc chi tiết
+    const [drugs, setDrugs] = useState([
+        { tenThuoc: '', lieuDung: '', tanSuat: '', soNgayDung: '' }
+    ]);
     
     const [aiLoading, setAiLoading] = useState(false);
     const [submitting, setSubmitting] = useState(false);
@@ -27,6 +31,32 @@ const CreateRecord = () => {
         }
     }, [appointment]);
 
+    const handleAddDrug = () => {
+        setDrugs([...drugs, { tenThuoc: '', lieuDung: '', tanSuat: '', soNgayDung: '' }]);
+    };
+
+    const handleRemoveDrug = (index) => {
+        const updated = drugs.filter((_, idx) => idx !== index);
+        setDrugs(updated.length > 0 ? updated : [{ tenThuoc: '', lieuDung: '', tanSuat: '', soNgayDung: '' }]);
+    };
+
+    const handleDrugChange = (index, field, value) => {
+        const updated = drugs.map((drug, idx) => {
+            if (idx === index) {
+                return { ...drug, [field]: value };
+            }
+            return drug;
+        });
+        setDrugs(updated);
+    };
+
+    const getFormattedPrescription = () => {
+        return drugs
+            .filter(d => d.tenThuoc.trim())
+            .map(d => `${d.tenThuoc}${d.lieuDung ? ` (${d.lieuDung})` : ''}${d.tanSuat ? ` - ${d.tanSuat}` : ''}${d.soNgayDung ? ` x ${d.soNgayDung} ngày` : ''}`)
+            .join('\n');
+    };
+
     const handleAiSummarize = async () => {
         if (!diagnosis) {
             setError('Vui lòng nhập chẩn đoán bệnh trước khi yêu cầu AI tóm tắt.');
@@ -39,7 +69,7 @@ const CreateRecord = () => {
                 diagnosis,
                 symptoms,
                 doctor_notes: doctorNotes || 'Không có ghi chú thêm.',
-                prescription: prescription || 'Không kê đơn.'
+                prescription: getFormattedPrescription() || 'Không kê đơn.'
             });
             setAiSummary(res.data.summary);
         } catch (err) {
@@ -62,12 +92,16 @@ const CreateRecord = () => {
 
         setSubmitting(true);
         try {
+            const formattedPrescription = getFormattedPrescription();
+            const validDrugs = drugs.filter(d => d.tenThuoc.trim());
+
             await doctorService.createMedicalRecord({
                 appointmentId: appointment.Id,
                 patientId: appointment.PatientId,
                 symptoms,
                 diagnosis,
-                prescription,
+                prescription: formattedPrescription,
+                drugs: validDrugs,
                 doctorNotes,
                 aiSummary
             });
@@ -159,22 +193,70 @@ const CreateRecord = () => {
                             />
                         </div>
 
-                        {/* Đơn thuốc */}
-                        <div className="form-group">
-                            <label className="form-label" htmlFor="prescription">
-                                <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                                    <Clipboard size={14} /> Đơn thuốc điều trị
+                        {/* Kê đơn thuốc chi tiết */}
+                        <div className="form-group" style={{ border: '1px solid var(--border-color)', borderRadius: 'var(--radius-sm)', padding: '1.25rem', background: 'rgba(255,255,255,0.015)', marginBottom: '1.5rem' }}>
+                            <label className="form-label" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                                <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', fontWeight: 600 }}>
+                                    <Clipboard size={14} color="var(--primary)" /> Kê đơn thuốc chi tiết
                                 </span>
+                                <button
+                                    type="button"
+                                    onClick={handleAddDrug}
+                                    className="btn btn-secondary"
+                                    style={{ fontSize: '0.75rem', padding: '0.25rem 0.5rem' }}
+                                >
+                                    + Thêm thuốc
+                                </button>
                             </label>
-                            <textarea
-                                id="prescription"
-                                className="form-input"
-                                rows="4"
-                                value={prescription}
-                                onChange={(e) => setPrescription(e.target.value)}
-                                placeholder="Tên thuốc, liều lượng và cách dùng (Ví dụ: Amoxicillin 500mg x 10 viên, uống 2 viên/ngày)..."
-                                style={{ resize: 'none' }}
-                            ></textarea>
+
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                                {drugs.map((drug, index) => (
+                                    <div key={index} style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr auto', gap: '0.5rem', alignItems: 'center' }}>
+                                        <input
+                                            type="text"
+                                            className="form-input"
+                                            style={{ fontSize: '0.85rem', padding: '0.4rem 0.6rem' }}
+                                            placeholder="Tên thuốc (VD: Paracetamol)"
+                                            value={drug.tenThuoc}
+                                            onChange={(e) => handleDrugChange(index, 'tenThuoc', e.target.value)}
+                                            required
+                                        />
+                                        <input
+                                            type="text"
+                                            className="form-input"
+                                            style={{ fontSize: '0.85rem', padding: '0.4rem 0.6rem' }}
+                                            placeholder="Liều lượng (VD: 500mg)"
+                                            value={drug.lieuDung}
+                                            onChange={(e) => handleDrugChange(index, 'lieuDung', e.target.value)}
+                                        />
+                                        <input
+                                            type="text"
+                                            className="form-input"
+                                            style={{ fontSize: '0.85rem', padding: '0.4rem 0.6rem' }}
+                                            placeholder="Tần suất (VD: 2 lần/ngày)"
+                                            value={drug.tanSuat}
+                                            onChange={(e) => handleDrugChange(index, 'tanSuat', e.target.value)}
+                                        />
+                                        <input
+                                            type="number"
+                                            className="form-input"
+                                            style={{ fontSize: '0.85rem', padding: '0.4rem 0.6rem' }}
+                                            placeholder="Số ngày"
+                                            min="1"
+                                            value={drug.soNgayDung}
+                                            onChange={(e) => handleDrugChange(index, 'soNgayDung', e.target.value)}
+                                        />
+                                        <button
+                                            type="button"
+                                            onClick={() => handleRemoveDrug(index)}
+                                            className="btn btn-secondary"
+                                            style={{ padding: '0.4rem 0.6rem', border: '1px solid #EF4444', color: '#EF4444', background: 'transparent' }}
+                                        >
+                                            Xóa
+                                        </button>
+                                    </div>
+                                ))}
+                            </div>
                         </div>
 
                         {/* Ghi chú & dặn dò */}
