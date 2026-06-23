@@ -272,6 +272,75 @@ exports.createMedicalRecord = async (req, res) => {
             .input('maLichHen', sql.VarChar, appointmentId)
             .query(`UPDATE LichHen SET TrangThai = N'Hoàn thành' WHERE MaLichHen = @maLichHen`);
 
+        // --- TỰ ĐỘNG TẠO HÓA ĐƠN VIỆN PHÍ ---
+        try {
+            // 1. Lấy phí khám của bác sĩ
+            const bsResult = await pool.request()
+                .input('maBacSi', sql.VarChar, maBacSi)
+                .query('SELECT PhiKham FROM BacSi WHERE MaBacSi = @maBacSi');
+            const phiKham = bsResult.recordset.length > 0 ? (bsResult.recordset[0].PhiKham || 0) : 0;
+
+            // 2. Tính tiền thuốc
+            let phiThuoc = 0;
+            if (drugs && Array.isArray(drugs) && drugs.length > 0) {
+                for (const drug of drugs) {
+                    if (!drug.tenThuoc || !drug.tenThuoc.trim()) continue;
+                    const days = drug.soNgayDung ? parseInt(drug.soNgayDung) : 5;
+                    phiThuoc += days * 15000; // Giá tượng trưng: 15,000 VND / ngày dùng
+                }
+            }
+
+            // 3. Kiểm tra mức hưởng BHYT hoạt động của bệnh nhân
+            const bhResult = await pool.request()
+                .input('maBenhNhan', sql.VarChar, maBenhNhan)
+                .query(`
+                    SELECT MucHuong 
+                    FROM BaoHiemYTe 
+                    WHERE MaBenhNhan = @maBenhNhan 
+                      AND (NgayHetHan IS NULL OR NgayHetHan >= GETDATE())
+                `);
+            const mucHuongBHYT = bhResult.recordset.length > 0 ? (bhResult.recordset[0].MucHuong || 0) : 0;
+
+            // 4. Tính toán tổng tiền
+            const phiDichVu = 0; // Để mặc định phí dịch vụ lâm sàng phụ trợ là 0
+            const tongTien = phiKham + phiThuoc + phiDichVu;
+            const giamGiaBHYT = (tongTien * mucHuongBHYT) / 100;
+            const thanhTien = tongTien - giamGiaBHYT;
+
+            // 5. Tạo MaHoaDon mới (HDxxx)
+            const maxHdResult = await pool.request().query(`
+                SELECT MAX(CAST(SUBSTRING(MaHoaDon, 3, LEN(MaHoaDon)) AS INT)) AS MaxId
+                FROM HoaDon
+            `);
+            const nextHdId = (maxHdResult.recordset[0].MaxId || 0) + 1;
+            const newMaHoaDon = 'HD' + String(nextHdId).padStart(3, '0');
+
+            // 6. Lưu vào cơ sở dữ liệu
+            await pool.request()
+                .input('maHoaDon', sql.VarChar, newMaHoaDon)
+                .input('maBenhAn', sql.VarChar, newMaBenhAn)
+                .input('maBenhNhan', sql.VarChar, maBenhNhan)
+                .input('maBacSi', sql.VarChar, maBacSi)
+                .input('phiKham', sql.Decimal, phiKham)
+                .input('phiThuoc', sql.Decimal, phiThuoc)
+                .input('phiDichVu', sql.Decimal, phiDichVu)
+                .input('tongTien', sql.Decimal, tongTien)
+                .input('mucHuongBHYT', sql.Int, mucHuongBHYT)
+                .input('giamGiaBHYT', sql.Decimal, giamGiaBHYT)
+                .input('thanhTien', sql.Decimal, thanhTien)
+                .query(`
+                    INSERT INTO HoaDon 
+                        (MaHoaDon, MaBenhAn, MaBenhNhan, MaBacSi, PhiKham, PhiThuoc, PhiDichVu, TongTien, MucHuongBHYT, GiamGiaBHYT, ThanhTien, TrangThai, NgayTao)
+                    VALUES 
+                        (@maHoaDon, @maBenhAn, @maBenhNhan, @maBacSi, @phiKham, @phiThuoc, @phiDichVu, @tongTien, @mucHuongBHYT, @giamGiaBHYT, @thanhTien, N'Chưa thanh toán', GETDATE())
+                `);
+            
+            console.log(`Successfully generated unpaid invoice ${newMaHoaDon} for medical record ${newMaBenhAn}`);
+        } catch (billingErr) {
+            // Không chặn luồng chính của bệnh án nếu chỉ lỗi tạo hóa đơn
+            console.error('Error generating billing invoice:', billingErr);
+        }
+
         res.status(201).json({ message: 'Lưu bệnh án và hoàn thành ca khám thành công' });
     } catch (err) {
         console.error('Error creating medical record:', err);

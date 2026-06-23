@@ -170,11 +170,17 @@ exports.getProfile = async (req, res) => {
                     bn.NhomMau      AS BloodType,
                     bn.DiUng        AS Allergies,
                     bn.TienSuBenh   AS MedicalHistory,
-                    bn.NguoiLienHeKhanCap AS EmergencyContact
+                    bn.NguoiLienHeKhanCap AS EmergencyContact,
+                    bh.SoTheBHYT    AS InsuranceCode,
+                    bh.NoiDangKyKCB AS InsuranceHospital,
+                    bh.NgayBatDau   AS InsuranceStartDate,
+                    bh.NgayHetHan   AS InsuranceEndDate,
+                    bh.MucHuong     AS InsuranceCoverage
                 FROM NguoiDung nd
                 LEFT JOIN BacSi bs ON bs.MaNguoiDung = nd.MaNguoiDung
                 LEFT JOIN ChuyenKhoa ck ON ck.MaChuyenKhoa = bs.MaChuyenKhoa
                 LEFT JOIN BenhNhan bn ON bn.MaNguoiDung = nd.MaNguoiDung
+                LEFT JOIN BaoHiemYTe bh ON bh.MaBenhNhan = bn.MaBenhNhan
                 WHERE nd.MaNguoiDung = @id
             `);
 
@@ -199,6 +205,11 @@ exports.getProfile = async (req, res) => {
             Allergies: row.Allergies,
             MedicalHistory: row.MedicalHistory,
             EmergencyContact: row.EmergencyContact,
+            InsuranceCode: row.InsuranceCode,
+            InsuranceHospital: row.InsuranceHospital,
+            InsuranceStartDate: row.InsuranceStartDate,
+            InsuranceEndDate: row.InsuranceEndDate,
+            InsuranceCoverage: row.InsuranceCoverage,
         });
     } catch (err) {
         console.error('Get profile error:', err);
@@ -208,7 +219,11 @@ exports.getProfile = async (req, res) => {
 
 exports.updateProfile = async (req, res) => {
     const userId = req.user.id;
-    const { fullName, phone, address, dateOfBirth, gender, bloodType, allergies, medicalHistory, emergencyContact } = req.body;
+    const { 
+        fullName, phone, address, dateOfBirth, gender, 
+        bloodType, allergies, medicalHistory, emergencyContact,
+        insuranceCode, insuranceHospital, insuranceStartDate, insuranceEndDate, insuranceCoverage 
+    } = req.body;
 
     if (!fullName) {
         return res.status(400).json({ message: 'Họ tên là bắt buộc' });
@@ -216,6 +231,8 @@ exports.updateProfile = async (req, res) => {
 
     try {
         const pool = await poolPromise;
+        
+        // Cập nhật thông tin cơ bản NguoiDung và BenhNhan
         await pool.request()
             .input('id', sql.VarChar, userId)
             .input('fullName', sql.NVarChar, fullName)
@@ -243,6 +260,63 @@ exports.updateProfile = async (req, res) => {
                     NguoiLienHeKhanCap = @emergencyContact
                 WHERE MaNguoiDung = @id;
             `);
+
+        // Cập nhật thông tin BaoHiemYTe nếu là bệnh nhân
+        const bnResult = await pool.request()
+            .input('userId', sql.VarChar, userId)
+            .query('SELECT MaBenhNhan FROM BenhNhan WHERE MaNguoiDung = @userId');
+        
+        if (bnResult.recordset.length > 0) {
+            const maBenhNhan = bnResult.recordset[0].MaBenhNhan;
+            
+            if (insuranceCode) {
+                const checkBHYT = await pool.request()
+                    .input('maBenhNhan', sql.VarChar, maBenhNhan)
+                    .query('SELECT MaBHYT FROM BaoHiemYTe WHERE MaBenhNhan = @maBenhNhan');
+                
+                if (checkBHYT.recordset.length > 0) {
+                    // Update existing insurance
+                    await pool.request()
+                        .input('maBenhNhan', sql.VarChar, maBenhNhan)
+                        .input('soTheBHYT', sql.VarChar, insuranceCode)
+                        .input('noiDangKyKCB', sql.NVarChar, insuranceHospital || null)
+                        .input('ngayBatDau', sql.Date, insuranceStartDate || null)
+                        .input('ngayHetHan', sql.Date, insuranceEndDate || null)
+                        .input('mucHuong', sql.Int, insuranceCoverage ? parseInt(insuranceCoverage) : 80)
+                        .query(`
+                            UPDATE BaoHiemYTe
+                            SET SoTheBHYT = @soTheBHYT,
+                                NoiDangKyKCB = @noiDangKyKCB,
+                                NgayBatDau = @ngayBatDau,
+                                NgayHetHan = @ngayHetHan,
+                                MucHuong = @mucHuong
+                            WHERE MaBenhNhan = @maBenhNhan
+                        `);
+                } else {
+                    // Create new MaBHYT
+                    const maxBhResult = await pool.request().query(`
+                        SELECT MAX(CAST(SUBSTRING(MaBHYT, 3, LEN(MaBHYT)) AS INT)) AS MaxId
+                        FROM BaoHiemYTe
+                    `);
+                    const nextBhId = (maxBhResult.recordset[0].MaxId || 0) + 1;
+                    const newMaBHYT = 'BH' + String(nextBhId).padStart(3, '0');
+                    
+                    // Insert insurance
+                    await pool.request()
+                        .input('maBHYT', sql.VarChar, newMaBHYT)
+                        .input('maBenhNhan', sql.VarChar, maBenhNhan)
+                        .input('soTheBHYT', sql.VarChar, insuranceCode)
+                        .input('noiDangKyKCB', sql.NVarChar, insuranceHospital || null)
+                        .input('ngayBatDau', sql.Date, insuranceStartDate || null)
+                        .input('ngayHetHan', sql.Date, insuranceEndDate || null)
+                        .input('mucHuong', sql.Int, insuranceCoverage ? parseInt(insuranceCoverage) : 80)
+                        .query(`
+                            INSERT INTO BaoHiemYTe (MaBHYT, MaBenhNhan, SoTheBHYT, NoiDangKyKCB, NgayBatDau, NgayHetHan, MucHuong)
+                            VALUES (@maBHYT, @maBenhNhan, @soTheBHYT, @noiDangKyKCB, @ngayBatDau, @ngayHetHan, @mucHuong)
+                        `);
+                }
+            }
+        }
 
         res.json({ message: 'Cập nhật hồ sơ thành công' });
     } catch (err) {

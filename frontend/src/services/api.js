@@ -79,3 +79,19 @@ export const aiService = {
     suggestSpecialty: (symptoms) => aiApi.post('/suggest-specialty', { symptoms }),
     summarizeRecord: (recordData) => aiApi.post('/summarize-record', recordData),
 };
+
+export const paymentService = {
+    getPayments: (status, search) => {
+        let url = '/payments';
+        const params = [];
+        if (status) params.push(`status=${encodeURIComponent(status)}`);
+        if (search) params.push(`search=${encodeURIComponent(search)}`);
+        if (params.length > 0) url += '?' + params.join('&');
+        return api.get(url);
+    },
+    getMyPayments: () => api.get('/payments/my-payments'),
+    getPaymentDetail: (id) => api.get(`/payments/${id}`),
+    payOnline: (id, paymentMethod) => api.post(`/payments/${id}/pay`, { paymentMethod }),
+    confirmCashPayment: (id) => api.post(`/payments/${id}/confirm-cash`),
+    getRevenueStats: () => api.get('/payments/stats/revenue'),
+};
