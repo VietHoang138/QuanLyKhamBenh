@@ -13,7 +13,12 @@ const Profile = () => {
         bloodType: '',
         emergencyContact: '',
         allergies: '',
-        medicalHistory: ''
+        medicalHistory: '',
+        insuranceCode: '',
+        insuranceHospital: '',
+        insuranceStartDate: '',
+        insuranceEndDate: '',
+        insuranceCoverage: '80'
     });
     const [loading, setLoading] = useState(false);
     const [success, setSuccess] = useState('');
@@ -30,7 +35,12 @@ const Profile = () => {
                 bloodType: user.BloodType || '',
                 emergencyContact: user.EmergencyContact || '',
                 allergies: user.Allergies || '',
-                medicalHistory: user.MedicalHistory || ''
+                medicalHistory: user.MedicalHistory || '',
+                insuranceCode: user.InsuranceCode || '',
+                insuranceHospital: user.InsuranceHospital || '',
+                insuranceStartDate: user.InsuranceStartDate ? new Date(user.InsuranceStartDate).toISOString().split('T')[0] : '',
+                insuranceEndDate: user.InsuranceEndDate ? new Date(user.InsuranceEndDate).toISOString().split('T')[0] : '',
+                insuranceCoverage: user.InsuranceCoverage || '80'
             });
         }
     }, [user]);
@@ -215,6 +225,73 @@ const Profile = () => {
                                         onChange={handleChange}
                                     />
                                 </div>
+                            </div>
+
+                            {/* BHYT Section */}
+                            <h3 style={{ fontSize: '1.05rem', color: 'var(--primary)', borderBottom: '1px dashed var(--border-color)', paddingBottom: '0.5rem', marginTop: '1.5rem', marginBottom: '0.5rem' }}>
+                                Thông tin Bảo hiểm Y tế (BHYT)
+                            </h3>
+
+                            <div className="form-group">
+                                <label className="form-label" htmlFor="insuranceCode">Số thẻ BHYT</label>
+                                <input
+                                    type="text"
+                                    id="insuranceCode"
+                                    className="form-input"
+                                    placeholder="Ví dụ: GD4797912345678"
+                                    value={formData.insuranceCode}
+                                    onChange={handleChange}
+                                />
+                            </div>
+
+                            <div className="form-group">
+                                <label className="form-label" htmlFor="insuranceHospital">Nơi đăng ký KCB ban đầu</label>
+                                <input
+                                    type="text"
+                                    id="insuranceHospital"
+                                    className="form-input"
+                                    placeholder="Bệnh viện đa khoa..."
+                                    value={formData.insuranceHospital}
+                                    onChange={handleChange}
+                                />
+                            </div>
+
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                                <div className="form-group">
+                                    <label className="form-label" htmlFor="insuranceStartDate">Ngày bắt đầu</label>
+                                    <input
+                                        type="date"
+                                        id="insuranceStartDate"
+                                        className="form-input"
+                                        value={formData.insuranceStartDate}
+                                        onChange={handleChange}
+                                    />
+                                </div>
+                                <div className="form-group">
+                                    <label className="form-label" htmlFor="insuranceEndDate">Ngày hết hạn</label>
+                                    <input
+                                        type="date"
+                                        id="insuranceEndDate"
+                                        className="form-input"
+                                        value={formData.insuranceEndDate}
+                                        onChange={handleChange}
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="form-group">
+                                <label className="form-label" htmlFor="insuranceCoverage">Mức hưởng BHYT (%)</label>
+                                <select
+                                    id="insuranceCoverage"
+                                    className="form-input"
+                                    value={formData.insuranceCoverage}
+                                    onChange={handleChange}
+                                    style={{ background: '#0D1322', color: '#FFF' }}
+                                >
+                                    <option value="80">80% (Người lao động, hộ gia đình)</option>
+                                    <option value="95">95% (Cận nghèo, hưu trí)</option>
+                                    <option value="100">100% (Công an, quân đội, người có công)</option>
+                                </select>
                             </div>
                         </div>
 

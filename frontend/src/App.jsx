@@ -18,12 +18,14 @@ import MedicalHistory from './pages/Patient/MedicalHistory';
 import ChatDoctor from './pages/Patient/ChatDoctor';
 import ChatAI from './pages/Patient/ChatAI';
 import Profile from './pages/Patient/Profile';
+import PatientPayments from './pages/Patient/Payments';
 
 // Doctor Pages
 import DoctorDashboard from './pages/Doctor/Dashboard';
 import PatientList from './pages/Doctor/PatientList';
 import CreateRecord from './pages/Doctor/CreateRecord';
 import ChatPatient from './pages/Doctor/ChatPatient';
+import DoctorPayments from './pages/Doctor/Payments';
 
 // Admin Pages
 import AdminDashboard from './pages/Admin/Dashboard';
@@ -54,6 +56,7 @@ function App() {
                 <Route path="/patient/chat-doctor" element={<ChatDoctor />} />
                 <Route path="/patient/chat-ai" element={<ChatAI />} />
                 <Route path="/patient/profile" element={<Profile />} />
+                <Route path="/patient/payments" element={<PatientPayments />} />
               </Route>
 
               {/* Doctor Routes */}
@@ -62,6 +65,7 @@ function App() {
                 <Route path="/doctor/patients" element={<PatientList />} />
                 <Route path="/doctor/create-record" element={<CreateRecord />} />
                 <Route path="/doctor/chat" element={<ChatPatient />} />
+                <Route path="/doctor/payments" element={<DoctorPayments />} />
               </Route>
 
               {/* Admin Routes */}

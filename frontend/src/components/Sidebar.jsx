@@ -3,7 +3,7 @@ import { NavLink } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { 
     Home, Calendar, User, Clipboard, MessageSquare, Bot, 
-    Users, PlusCircle, BarChart2, Shield, HeartPulse 
+    Users, PlusCircle, BarChart2, Shield, HeartPulse, CreditCard 
 } from 'lucide-react';
 
 const Sidebar = () => {
@@ -51,6 +51,12 @@ const Sidebar = () => {
                 </NavLink>
             </li>
             <li className="sidebar-item">
+                <NavLink to="/patient/payments" className={navClass}>
+                    <CreditCard size={18} />
+                    <span>Thanh toán viện phí</span>
+                </NavLink>
+            </li>
+            <li className="sidebar-item">
                 <NavLink to="/patient/profile" className={navClass}>
                     <User size={18} />
                     <span>Hồ sơ cá nhân</span>
@@ -77,6 +83,12 @@ const Sidebar = () => {
                 <NavLink to="/doctor/chat" className={navClass}>
                     <MessageSquare size={18} />
                     <span>Chat với bệnh nhân</span>
+                </NavLink>
+            </li>
+            <li className="sidebar-item">
+                <NavLink to="/doctor/payments" className={navClass}>
+                    <CreditCard size={18} />
+                    <span>Quản lý viện phí</span>
                 </NavLink>
             </li>
         </>
