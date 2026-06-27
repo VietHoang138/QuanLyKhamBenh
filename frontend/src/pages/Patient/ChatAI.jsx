@@ -133,7 +133,7 @@ const ChatAI = () => {
                         <Bot size={26} color="var(--primary)" />
                         Tư Vấn Triệu Chứng Bằng AI
                     </h1>
-                    <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>Được tài trợ bởi mô hình trợ lý chẩn đoán thông minh</p>
+                    <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>Được hỗ trợ bởi Google Gemini AI</p>
                 </div>
             </div>
 
@@ -144,8 +144,8 @@ const ChatAI = () => {
                     <div className="chat-header" style={{ borderBottom: '1px solid var(--border-color)', background: 'rgba(138,43,226,0.03)' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                             <Bot size={20} color="violet" />
-                            <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>Trợ Lý Sức Khỏe AI (Mock)</span>
-                            <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', background: 'rgba(255,255,255,0.05)', padding: '0.1rem 0.4rem', borderRadius: '4px' }}>FastAPI API</span>
+                            <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>Trợ Lý Sức Khỏe AI</span>
+                            <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', background: 'rgba(255,255,255,0.05)', padding: '0.1rem 0.4rem', borderRadius: '4px' }}>Gemini AI</span>
                         </div>
                     </div>
 
